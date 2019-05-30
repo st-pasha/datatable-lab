@@ -17,11 +17,14 @@ clean:
 	rm -f *.o
 	rm -f ./parallel
 
-build: main.o scenario.o
+build: main.o scenario.o scenario1.o
 	$(CC) $(LDFLAGS) $(LIBRARIES) -o parallel $+
 
 main.o: main.cc
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
 scenario.o: scenario.cc scenario.h
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+scenario1.o: scenario1.cc scenario.h
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
