@@ -39,7 +39,7 @@ debug:
 	DEBUG=1 \
 	$(MAKE) build
 
-build: main.o scenario.o scenario1.o $(threadpool_objects)
+build: main.o scenario.o scenario1.o scenario2.o $(threadpool_objects)
 	$(CC) $(LDFLAGS) $(LIBRARIES) -o parallel $+
 
 
@@ -51,6 +51,9 @@ scenario.o: scenario.cc scenario.h
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
 scenario1.o: scenario1.cc scenario.h
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+scenario2.o: scenario2.cc scenario.h
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
 

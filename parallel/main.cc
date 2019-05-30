@@ -11,13 +11,14 @@ struct config {
   size_t n;
   double time;
   int nthreads;
-  int : 32;
+  int task;
 
   config() {
     seed = 1;
     n = 1000000;
     time = 1.0;
     nthreads = dt::get_hardware_concurrency();
+    task = 1;
   }
 
   void parse(int argc, char** argv) {
@@ -26,6 +27,7 @@ struct config {
       {"n", 1, 0, 0},
       {"nthreads", 1, 0, 0},
       {"time", 1, 0, 0},
+      {"task", 1, 0, 0},
       {nullptr, 0, nullptr, 0}  // sentinel
     };
 
@@ -39,6 +41,7 @@ struct config {
           if (option_index == 1) n = atol(optarg);
           if (option_index == 2) nthreads = atoi(optarg);
           if (option_index == 3) time = atof(optarg);
+          if (option_index == 4) task = atoi(optarg);
         }
       }
     }
@@ -50,6 +53,7 @@ struct config {
     printf("  n        = %zu\n", n);
     printf("  time     = %.1f\n", time);
     printf("  nthreads = %d\n", nthreads);
+    printf("  task     = %d\n", task);
     printf("\n");
   }
 };
@@ -60,14 +64,16 @@ int main(int argc, char** argv) {
   // Parsing input parameters...
   config cfg;
   cfg.parse(argc, argv);
-  cfg.report();
 
   dt::thread_pool::get_instance()->resize(dt::get_hardware_concurrency());
 
-
   //
-  auto sc = scenptr(new scenario1(cfg.n, cfg.seed));
-  sc->set_nthreads(cfg.nthreads);
-  sc->set_max_time(cfg.time);
-  sc->benchmark();
+  auto sc = cfg.task == 1? scenptr(new scenario1(cfg.n, cfg.seed)) :
+            cfg.task == 2? scenptr(new scenario2(cfg.n)) :
+            scenptr(nullptr);
+  if (sc) {
+    sc->set_nthreads(cfg.nthreads);
+    sc->set_max_time(cfg.time);
+    sc->benchmark();
+  }
 }

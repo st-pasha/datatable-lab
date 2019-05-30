@@ -21,28 +21,6 @@
 namespace dt {
 
 
-
-//------------------------------------------------------------------------------
-// simple_task
-//------------------------------------------------------------------------------
-
-class simple_task : public thread_task {
-  private:
-    function<void()> f;
-  public:
-    simple_task(function<void()>);
-    void execute(thread_worker*) override;
-};
-
-
-simple_task::simple_task(function<void()> f_) : f(f_) {}
-
-void simple_task::execute(thread_worker*) {
-  f();
-}
-
-
-
 //------------------------------------------------------------------------------
 // once_scheduler
 //------------------------------------------------------------------------------
@@ -50,24 +28,30 @@ void simple_task::execute(thread_worker*) {
 // Implementation class for `dt::parallel_region()` function.
 class once_scheduler : public thread_scheduler {
   private:
+    struct simple_task : public thread_task {
+      function<void()> f;
+      simple_task(function<void()> f_) : f(f_) {}
+      void execute(thread_worker*) override { f(); }
+    };
+
     std::vector<cache_aligned<size_t>> done;
-    thread_task* task;
+    simple_task task;
 
   public:
-    once_scheduler(size_t nthreads, thread_task*);
+    once_scheduler(size_t nthreads, function<void()> fn);
     thread_task* get_next_task(size_t thread_index) override;
 };
 
-once_scheduler::once_scheduler(size_t nth, thread_task* task_)
+once_scheduler::once_scheduler(size_t nth, function<void()> fn)
   : done(nth, 0),
-    task(task_) {}
+    task(fn) {}
 
 thread_task* once_scheduler::get_next_task(size_t i) {
   if (i >= done.size() || done[i].v) {
     return nullptr;
   }
   done[i].v = 1;
-  return task;
+  return &task;
 }
 
 
@@ -88,8 +72,7 @@ void parallel_region(size_t nthreads, function<void()> fn) {
   if (nthreads > nthreads0 || nthreads == 0) nthreads = nthreads0;
   thread_team tt(nthreads, thpool);
 
-  simple_task task(fn);
-  once_scheduler sch(nthreads, &task);
+  once_scheduler sch(nthreads, fn);
   thpool->execute_job(&sch);
 }
 

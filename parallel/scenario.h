@@ -49,4 +49,19 @@ class scenario1 : public scenario {
 };
 
 
+
+class scenario2 : public scenario {
+  private:
+    size_t n;
+
+  public:
+    scenario2(size_t n_);
+
+  protected:
+    std::string name() override;
+    void run_omp() override;
+    void run_threadpool() override;
+};
+
+
 #endif

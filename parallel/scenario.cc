@@ -99,6 +99,16 @@ static void startup_omp() {
   }
 }
 
+static void startup_threadpool() {
+  std::mutex m;
+  std::vector<int> threadnums;
+  dt::parallel_region(
+    [&]{
+      size_t i = dt::this_thread_index();
+      std::lock_guard<std::mutex> lock(m);
+      threadnums.push_back(omp_get_thread_num());
+    });
+}
 
 
 void scenario::benchmark(int backends) {
@@ -108,6 +118,7 @@ void scenario::benchmark(int backends) {
     benchmarkit("OMP       ", [&]{ run_omp(); }, max_time);
   }
   if (backends & Backend::THP) {
+    startup_threadpool();
     benchmarkit("ThreadPool", [&]{ run_threadpool(); }, max_time);
   }
 }
