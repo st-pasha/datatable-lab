@@ -50,13 +50,17 @@ static void benchmarkit(const std::string& backend_name, F fun,
     n_runs ++;
   }
   std::sort(durations.begin(), durations.end());
+  if (n_runs >= 10) {
+    n_runs = static_cast<size_t>(n_runs * 0.95);
+    durations.resize(n_runs);
+  }
 
   int n2 = n_runs / 2;
   double med_time = (n_runs & 1)? durations[n2]
                                 : 0.5*(durations[n2] + durations[n2 - 1]);
   double min_time = durations.front();
   double max_time = durations.back();
-  double avg_time = total_time / n_runs;
+  double avg_time = std::accumulate(durations.begin(), durations.end(), 0.0) / n_runs;
   double ssq_time = std::accumulate(durations.begin(), durations.end(), 0.0,
                                     [avg_time](double acc, double val){
                                       return acc + std::pow(val - avg_time, 2);
