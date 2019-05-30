@@ -82,7 +82,7 @@ void thread_pool::instantiate_threads() {
 
 
 void thread_pool::execute_job(thread_scheduler* job) {
-  assert(in_master_thread());
+  // assert(in_master_thread());
   assert(current_team);
   if (workers.empty()) instantiate_threads();
   controller.awaken_and_run(job, workers.size());

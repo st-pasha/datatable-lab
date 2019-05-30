@@ -31,9 +31,15 @@ thread_worker::thread_worker(size_t i, worker_controller* wc)
     scheduler(wc),
     controller(wc)
 {
-  // Create actual execution thread only when `this` is fully initialized
-  wc->expect_new_thread();
-  thread = std::thread(&thread_worker::run, this);
+  if (i == 0) {
+    wc->set_master_worker(this);
+    scheduler = nullptr;
+    _set_thread_num(0);
+  } else {
+    // Create actual execution thread only when `this` is fully initialized
+    wc->expect_new_thread();
+    thread = std::thread(&thread_worker::run, this);
+  }
 }
 
 
@@ -69,6 +75,30 @@ void thread_worker::run() noexcept {
     }
   }
 }
+
+
+/**
+ * Similar to run(), but designed to run from the master thread. The
+ * differences are following:
+ *   - this method does NOT run continuously, instead it starts with
+ *     a new job, and finishes when the job is done.
+ *   - the `scheduler` is not used (since it is never set by the
+ *     controller), instead the `job` is passed explicitly.
+ */
+void thread_worker::run_master(thread_scheduler* job) noexcept {
+  if (!job) return;
+  while (true) {
+    try {
+      thread_task* task = job->get_next_task(0);
+      if (!task) break;
+      task->execute(this);
+    } catch (...) {
+      controller->catch_exception();
+      job->abort_execution();
+    }
+  }
+}
+
 
 size_t thread_worker::get_index() const noexcept {
   return thread_index;
@@ -110,7 +140,7 @@ void worker_controller::awaken_and_run(thread_scheduler* job, size_t nthreads) {
     std::lock_guard<std::mutex> lock(tsleep[i].mutex);
     tsleep[i].next_scheduler = job;
     tsleep[j].next_scheduler = nullptr;
-    tsleep[j].n_threads_not_sleeping = nthreads;
+    tsleep[j].n_threads_not_sleeping = nthreads - 1; // master never sleeps!
     index = j;
     saved_exception = nullptr;
   }
@@ -124,6 +154,7 @@ void worker_controller::join() {
   sleep_task& prev_sleep_task = tsleep[(index - 1) % N_SLEEP_TASKS];
   sleep_task& curr_sleep_task = tsleep[index];
 
+  master_worker->run_master(prev_sleep_task.next_scheduler);
   {
     std::unique_lock<std::mutex> lock(curr_sleep_task.mutex);
     while (curr_sleep_task.n_threads_not_sleeping > 0) {
@@ -149,6 +180,11 @@ void worker_controller::pretend_thread_went_to_sleep() {
 void worker_controller::expect_new_thread() {
   std::lock_guard<std::mutex> lock(tsleep[index].mutex);
   tsleep[index].n_threads_not_sleeping++;
+}
+
+
+void worker_controller::set_master_worker(thread_worker* worker) noexcept {
+  master_worker = worker;
 }
 
 
