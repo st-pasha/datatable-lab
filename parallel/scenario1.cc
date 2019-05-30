@@ -5,12 +5,11 @@
 #include "scenario.h"
 
 
-scenario1::scenario1(size_t n) {
+scenario1::scenario1(size_t n, size_t seed) {
   input_data.resize(n);
   output_data.resize(n);
 
-  std::random_device rd{};
-  std::mt19937 gen{ rd() };
+  std::mt19937 gen{ static_cast<uint32_t>(seed) };
   std::normal_distribution<> normal_distribution(0.0);
 
   for (size_t i = 0; i < n; ++i) {
@@ -31,7 +30,7 @@ void scenario1::run_omp() {
   const double* inputs = input_data.data();
   double* outputs = output_data.data();
 
-  #pragma omp for schedule(static)
+  #pragma omp parallel for schedule(static) num_threads(nthreads)
   for (size_t i = 0; i < n; ++i) {
     outputs[i] = std::sin(inputs[i]);
   }
@@ -43,7 +42,10 @@ void scenario1::run_threadpool() {
   const double* inputs = input_data.data();
   double* outputs = output_data.data();
 
-  dt::parallel_for_static(n,
+  dt::parallel_for_static(
+    /* nrows = */ n,
+    /* min_chunk_size = */ 1024,
+    /* nthreads = */ nthreads,
     [&](size_t i) {
       outputs[i] = std::sin(inputs[i]);
     });

@@ -11,9 +11,17 @@ enum Backend {
 
 
 class scenario {
+  protected:
+    double max_time;
+    int nthreads;
+    int : 32;
+
   public:
+    scenario();
     virtual ~scenario();
 
+    void set_nthreads(int nth);
+    void set_max_time(double t);
     void benchmark(int backends = Backend::OMP | Backend::THP);
 
   protected:
@@ -32,7 +40,7 @@ class scenario1 : public scenario {
     std::vector<double> output_data;
 
   public:
-    explicit scenario1(size_t n);
+    scenario1(size_t n, size_t seed);
 
   protected:
     std::string name() override;

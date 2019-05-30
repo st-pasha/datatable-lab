@@ -2,8 +2,14 @@
 CC ?= gcc
 INCLUDES = -I.
 LIBRARIES =
-CCFLAGS += -std=gnu++11 -stdlib=libc++ -O3 -fopenmp
+CCFLAGS += -std=gnu++11 -stdlib=libc++ -fopenmp
 LDFLAGS += -fopenmp
+
+ifeq ($(DEBUG),)
+	CCFLAGS += -O3
+else
+	CCFLAGS += -O0 -ggdb
+endif
 
 UNAME := $(shell uname)
 ifeq ($(UNAME), Darwin)
@@ -26,10 +32,12 @@ all: build
 
 clean:
 	rm -f *.o
+	rm -f threadpool/*.o
 	rm -f ./parallel
 
-run:
-	./parallel
+debug:
+	DEBUG=1 \
+	$(MAKE) build
 
 build: main.o scenario.o scenario1.o $(threadpool_objects)
 	$(CC) $(LDFLAGS) $(LIBRARIES) -o parallel $+

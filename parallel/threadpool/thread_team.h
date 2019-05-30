@@ -18,7 +18,6 @@
 #include <atomic>
 #include <cstddef>
 #include "threadpool/thread_pool.h"
-#include <atomic>
 
 namespace dt {
 using std::size_t;

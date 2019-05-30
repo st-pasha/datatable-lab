@@ -15,7 +15,7 @@
 //------------------------------------------------------------------------------
 #include <algorithm>  // std::min
 #include "threadpool/api.h"
-#include "function.h"
+#include "threadpool/function.h"
 namespace dt {
 
 

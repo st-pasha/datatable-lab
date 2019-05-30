@@ -17,7 +17,7 @@
 #include "threadpool/thread_pool.h"
 #include "threadpool/thread_scheduler.h"
 #include "threadpool/thread_team.h"
-#include "macros.h"          // cache_aligned
+#include "threadpool/macros.h"          // cache_aligned
 namespace dt {
 
 

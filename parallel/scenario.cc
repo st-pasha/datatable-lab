@@ -1,12 +1,28 @@
 #include <algorithm>
 #include <chrono>
+#include <cmath>       // std::pow, std::sqrt
 #include <iomanip>
 #include <iostream>
+#include <numeric>     // std::accumulate
+#include <omp.h>
+#include "threadpool/api.h"
 #include "scenario.h"
 
 
+scenario::scenario() {
+  max_time = 1.0;
+  nthreads = dt::get_hardware_concurrency();
+}
 
 scenario::~scenario() {}
+
+void scenario::set_nthreads(int nth) {
+  nthreads = nth;
+}
+
+void scenario::set_max_time(double t) {
+  max_time = t;
+}
 
 
 template <typename F>
@@ -41,6 +57,11 @@ static void benchmarkit(const std::string& backend_name, F fun,
   double min_time = durations.front();
   double max_time = durations.back();
   double avg_time = total_time / n_runs;
+  double ssq_time = std::accumulate(durations.begin(), durations.end(), 0.0,
+                                    [avg_time](double acc, double val){
+                                      return acc + std::pow(val - avg_time, 2);
+                                    });
+  double stdev_time = std::sqrt(ssq_time / n_runs);
 
   std::string units = "s";
   if (max_time < 1) {
@@ -48,25 +69,42 @@ static void benchmarkit(const std::string& backend_name, F fun,
     min_time *= 1000.0;
     max_time *= 1000.0;
     avg_time *= 1000.0;
+    stdev_time *= 1000.0;
     units = "ms";
   }
 
   std::cout << std::fixed << std::setw(8) << std::setprecision(3);
   std::cout << avg_time << units
+            << " ± " << stdev_time
             << " (min=" << min_time << units
             << ", med=" << med_time << units
             << ", max=" << max_time << units
+            << ", n=" << n_runs
             << ")\n";
 }
 
 
+static void startup_omp() {
+  std::vector<int> threadnums;
+  #pragma omp parallel
+  {
+    #pragma omp critical
+    {
+      threadnums.push_back(omp_get_thread_num());
+    }
+  }
+}
+
+
+
 void scenario::benchmark(int backends) {
-  std::cout << "\nBenchmarking " << name() << "\n";
+  std::cout << "Benchmarking [nthreads=" << nthreads << "] " << name() << "\n";
   if (backends & Backend::OMP) {
-    benchmarkit("OMP       ", [&]{ run_omp(); });
+    startup_omp();
+    benchmarkit("OMP       ", [&]{ run_omp(); }, max_time);
   }
   if (backends & Backend::THP) {
-    benchmarkit("ThreadPool", [&]{ run_threadpool(); });
+    benchmarkit("ThreadPool", [&]{ run_threadpool(); }, max_time);
   }
 }
 

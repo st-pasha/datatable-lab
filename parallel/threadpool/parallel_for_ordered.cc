@@ -22,7 +22,7 @@
 #include "threadpool/spin_mutex.h"
 #include "threadpool/thread_scheduler.h"
 #include "threadpool/thread_team.h"
-#include "function.h"
+#include "threadpool/function.h"
 namespace dt {
 
 
