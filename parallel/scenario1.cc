@@ -1,6 +1,7 @@
 #include <cmath>
 #include <random>
 #include <sstream>
+#include "threadpool/api.h"
 #include "scenario.h"
 
 
@@ -38,5 +39,12 @@ void scenario1::run_omp() {
 
 
 void scenario1::run_threadpool() {
+  size_t n = input_data.size();
+  const double* inputs = input_data.data();
+  double* outputs = output_data.data();
 
+  dt::parallel_for_static(n,
+    [&](size_t i) {
+      outputs[i] = std::sin(inputs[i]);
+    });
 }
