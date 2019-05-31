@@ -155,6 +155,7 @@ void worker_controller::join() {
   sleep_task& curr_sleep_task = tsleep[index];
 
   master_worker->run_master(prev_sleep_task.next_scheduler);
+
   {
     std::unique_lock<std::mutex> lock(curr_sleep_task.mutex);
     while (curr_sleep_task.n_threads_not_sleeping > 0) {

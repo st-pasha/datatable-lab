@@ -24,6 +24,9 @@ void scenario::set_max_time(double t) {
   max_time = t;
 }
 
+void scenario::setup() {}
+void scenario::teardown() {}
+
 
 template <typename F>
 static double timeit(F fun) {
@@ -115,11 +118,15 @@ void scenario::benchmark(int backends) {
   std::cout << "Benchmarking [nthreads=" << nthreads << "] " << name() << "\n";
   if (backends & Backend::OMP) {
     startup_omp();
+    setup();
     benchmarkit("OMP       ", [&]{ run_omp(); }, max_time);
+    teardown();
   }
   if (backends & Backend::THP) {
     startup_threadpool();
+    setup();
     benchmarkit("ThreadPool", [&]{ run_threadpool(); }, max_time);
+    teardown();
   }
 }
 
