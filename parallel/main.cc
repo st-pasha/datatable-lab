@@ -1,9 +1,21 @@
+#define _GNU_SOURCE
+#include <iostream>
 #include <getopt.h>  // getopt
 #include <unistd.h>  // getopt_long
 #include <stdlib.h>  // atol, atoi, atof
+#include <time.h>
+#include <sched.h>
+#include <sys/resource.h>
+#include <sys/time.h>
+#include <pthread.h>
 #include "threadpool/api.h"
 #include "threadpool/thread_pool.h"
 #include "scenario.h"
+#ifdef __APPLE__
+#include <mach/thread_policy.h>
+#include <mach/thread_act.h>
+#include <mach/mach_init.h>
+#endif
 
 
 struct config {
@@ -66,6 +78,35 @@ int main(int argc, char** argv) {
   cfg.parse(argc, argv);
 
   dt::thread_pool::get_instance()->resize(dt::get_hardware_concurrency());
+
+  // Check process limits
+  int policy;
+  struct sched_param params;
+  pthread_getschedparam(pthread_self(), &policy, &params);
+  std::cout << "Policy: " << (policy==SCHED_FIFO? "SCHED_FIFO" :
+                              policy==SCHED_RR? "SCHED_RR" :
+                              policy==SCHED_OTHER? "SCHED_OTHER" : "?") << "\n";
+  std::cout << "Priority: " << params.sched_priority << "\n";
+  int prmin = sched_get_priority_min(policy);
+  int prmax = sched_get_priority_max(policy);
+  std::cout << "Priorities range: " << prmin << ".." << prmax << "\n";
+  // cpu_set_t cpuset;
+  // int ret = pthread_getaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
+  // std::cout << "Affinity: ";
+  // for (int i = 0; i < CPU_SETSIZE; ++i) std::cout << (int)(CPU_ISSET(i));
+  // std::cout << "\n";
+  #ifdef __APPLE__
+    struct thread_affinity_policy pol;
+    mach_port_t thread = mach_thread_self();
+    boolean_t get_default = false;
+    mach_msg_type_number_t mmtn = THREAD_AFFINITY_POLICY_COUNT;
+    int ret = thread_policy_get(thread,
+                                THREAD_AFFINITY_POLICY,
+                                (thread_policy_t)&pol,
+                                &mmtn,
+                                &get_default);
+    std::cout << "ret=" << ret << ", policy=" << pol.affinity_tag << ", mach_msg_type_number=" << mmtn << "\n";
+  #endif
 
   //
   auto sc = cfg.task == 1? scenptr(new scenario1(cfg.n, cfg.seed)) :
