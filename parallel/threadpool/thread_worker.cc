@@ -114,9 +114,6 @@ size_t thread_worker::get_index() const noexcept {
 void worker_controller::sleep_task::execute(thread_worker* worker) {
   std::unique_lock<std::mutex> lock(mutex);
   n_threads_not_sleeping--;
-  if (n_threads_not_sleeping == 0) {
-    resume_master_thread_cv.notify_one();
-  }
   while (!next_scheduler) {
     // Wait for the `wakeup_all_threads_cv` condition variable to be notified,
     // but may also wake up spuriously, in which case we check `next_scheduler`
@@ -156,11 +153,9 @@ void worker_controller::join() {
 
   master_worker->run_master(prev_sleep_task.next_scheduler);
 
-  {
-    std::unique_lock<std::mutex> lock(curr_sleep_task.mutex);
-    while (curr_sleep_task.n_threads_not_sleeping > 0) {
-      curr_sleep_task.resume_master_thread_cv.wait(lock);
-    }
+  while (true) {
+    std::lock_guard<std::mutex> lock(curr_sleep_task.mutex);
+    if (curr_sleep_task.n_threads_not_sleeping == 0) break;
   }
 
   // Clear `.next_scheduler` flag of the previous sleep task, indicating that

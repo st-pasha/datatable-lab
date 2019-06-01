@@ -116,7 +116,6 @@ class worker_controller : public thread_scheduler {
     struct sleep_task : public thread_task {
       std::mutex mutex;
       std::condition_variable wakeup_all_threads_cv;
-      std::condition_variable resume_master_thread_cv;
       thread_scheduler* next_scheduler = nullptr;
       size_t n_threads_not_sleeping;
 
