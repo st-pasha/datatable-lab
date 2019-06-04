@@ -15,11 +15,12 @@
 //------------------------------------------------------------------------------
 #include <thread>      // std::thread::hardware_concurrency
 #include <pthread.h>   // pthread_atfork
-#include "threadpool/api.h"
-#include "threadpool/thread_pool.h"
-#include "threadpool/thread_team.h"
-#include "threadpool/thread_worker.h"
-namespace dt {
+#include "thpool1/api.h"
+#include "thpool1/thread_pool.h"
+#include "thpool1/thread_team.h"
+#include "thpool1/thread_worker.h"
+#include "utils/assert.h"
+namespace dt1 {
 
 
 
@@ -67,7 +68,7 @@ void thread_pool::instantiate_threads() {
       }
     }
     // Wait until all threads are properly alive & safely asleep
-    controller.join();
+    controller.join(n);
   }
   else {
     thread_team tt(n, this);
@@ -82,11 +83,11 @@ void thread_pool::instantiate_threads() {
 
 
 void thread_pool::execute_job(thread_scheduler* job) {
-  // assert(in_master_thread());
-  assert(current_team);
+  xassert(in_master_thread());
+  xassert(current_team);
   if (workers.empty()) instantiate_threads();
-  controller.awaken_and_run(job, workers.size());
-  controller.join();
+  controller.awaken_and_run(job);
+  controller.join(workers.size());
   // careful: workers.size() may not be equal to num_threads_requested during
   // shutdown
 }
@@ -158,11 +159,11 @@ size_t num_threads_in_team() {
 }
 
 size_t num_threads_available() {
-  size_t ith = dt::this_thread_index();
+  size_t ith = this_thread_index();
   if (ith == size_t(-1)) {
-    return dt::num_threads_in_pool();
+    return num_threads_in_pool();
   } else {
-    return dt::num_threads_in_team();
+    return num_threads_in_team();
   }
 }
 
@@ -182,6 +183,11 @@ size_t get_hardware_concurrency() noexcept {
 }
 
 
+static int init_statically() {
+  thread_pool::get_instance()->resize(get_hardware_concurrency());
+  return 1;
+}
+static int _done = init_statically();
 
 
 }  // namespace dt

@@ -13,10 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_PARALLEL_THREAD_SCHEDULER_h
-#define dt_PARALLEL_THREAD_SCHEDULER_h
+#ifndef dt1_PARALLEL_THREAD_SCHEDULER_h
+#define dt1_PARALLEL_THREAD_SCHEDULER_h
 #include <cstddef>  // size_t
-namespace dt {
+namespace dt1 {
 using std::size_t;
 
 // forward-declare

@@ -1,7 +1,7 @@
 #include <cmath>
 #include <random>
 #include <sstream>
-#include "threadpool/api.h"
+#include "thpool1/api.h"
 #include "scenario.h"
 
 
@@ -37,12 +37,12 @@ void scenario1::run_omp() {
 }
 
 
-void scenario1::run_threadpool() {
+void scenario1::run_thpool1() {
   size_t n = input_data.size();
   const double* inputs = input_data.data();
   double* outputs = output_data.data();
 
-  dt::parallel_for_static(
+  dt1::parallel_for_static(
     /* nrows = */ n,
     /* min_chunk_size = */ 1024,
     /* nthreads = */ nthreads,

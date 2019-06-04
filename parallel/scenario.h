@@ -30,7 +30,7 @@ class scenario {
   protected:
     virtual std::string name() = 0;
     virtual void run_omp() = 0;
-    virtual void run_threadpool() = 0;
+    virtual void run_thpool1() = 0;
 };
 
 using scenptr = std::unique_ptr<scenario>;
@@ -48,7 +48,7 @@ class scenario1 : public scenario {
   protected:
     std::string name() override;
     void run_omp() override;
-    void run_threadpool() override;
+    void run_thpool1() override;
 };
 
 
@@ -72,7 +72,7 @@ class scenario2 : public scenario {
   protected:
     std::string name() override;
     void run_omp() override;
-    void run_threadpool() override;
+    void run_thpool1() override;
 };
 
 

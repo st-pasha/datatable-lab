@@ -8,8 +8,7 @@
 #include <sys/resource.h>
 #include <sys/time.h>
 #include <pthread.h>
-#include "threadpool/api.h"
-#include "threadpool/thread_pool.h"
+#include "thpool1/api.h"
 #include "scenario.h"
 #ifdef __APPLE__
 #include <mach/thread_policy.h>
@@ -29,7 +28,7 @@ struct config {
     seed = 1;
     n = 1000000;
     time = 1.0;
-    nthreads = dt::get_hardware_concurrency();
+    nthreads = dt1::get_hardware_concurrency();
     task = 1;
   }
 
@@ -76,8 +75,6 @@ int main(int argc, char** argv) {
   // Parsing input parameters...
   config cfg;
   cfg.parse(argc, argv);
-
-  dt::thread_pool::get_instance()->resize(dt::get_hardware_concurrency());
 
   // Check process limits
   int policy;

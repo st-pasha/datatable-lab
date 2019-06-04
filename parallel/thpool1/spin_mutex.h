@@ -13,10 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_PARALLEL_SPIN_MUTEX_h
-#define dt_PARALLEL_SPIN_MUTEX_h
+#ifndef dt1_PARALLEL_SPIN_MUTEX_h
+#define dt1_PARALLEL_SPIN_MUTEX_h
 #include <atomic>   // std::atomic_flag
-namespace dt {
+namespace dt1 {
 
 
 class spin_mutex {

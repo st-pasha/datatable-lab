@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include "threadpool/api.h"               // this_thread_index
-#include "threadpool/thread_scheduler.h"  // thread_scheduler
-namespace dt {
+#include "thpool1/api.h"               // this_thread_index
+#include "thpool1/thread_scheduler.h"  // thread_scheduler
+namespace dt1 {
 
 
 thread_task::~thread_task() {}
@@ -32,7 +32,7 @@ void thread_scheduler::abort_execution() {
 void thread_scheduler::execute_in_current_thread() {
   // If this throws an exception, it will propagate to outer level, where the
   // exception will get caught in the outer's level task executor.
-  size_t ith = dt::this_thread_index();
+  size_t ith = this_thread_index();
   while (true) {
     auto task = get_next_task(ith);
     if (!task) break;

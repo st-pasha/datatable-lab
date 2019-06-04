@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_PARALLEL_API_h
-#define dt_PARALLEL_API_h
+#ifndef dt1_PARALLEL_API_h
+#define dt1_PARALLEL_API_h
 #include <cstddef>
 #include <functional>    // std::function
-#include "threadpool/function.h"
-namespace dt {
+#include "utils/function.h"
+namespace dt1 {
 using std::size_t;
 
 // Private
@@ -84,8 +84,8 @@ size_t get_hardware_concurrency() noexcept;
 /**
  * Call function `f` exactly once in each thread.
  */
-void parallel_region(size_t nthreads, function<void()> f);
-void parallel_region(function<void()> f);
+void parallel_region(size_t nthreads, dt::function<void()> f);
+void parallel_region(dt::function<void()> f);
 
 
 /**
@@ -103,7 +103,7 @@ void barrier();
  */
 template <typename F>
 void parallel_for_static(size_t nrows, F f) {
-  _parallel_for_static(nrows, 4096, dt::num_threads_available(),
+  _parallel_for_static(nrows, 4096, num_threads_available(),
     [&](size_t i0, size_t i1) {
       for (size_t i = i0; i < i1; ++i) f(i);
     });
@@ -111,7 +111,7 @@ void parallel_for_static(size_t nrows, F f) {
 
 template <typename F>
 void parallel_for_static(size_t nrows, size_t chunk_size, F f) {
-  _parallel_for_static(nrows, chunk_size, dt::num_threads_available(),
+  _parallel_for_static(nrows, chunk_size, num_threads_available(),
     [&](size_t i0, size_t i1) {
       for (size_t i = i0; i < i1; ++i) f(i);
     });
@@ -153,17 +153,17 @@ void parallel_for_dynamic(size_t nrows, size_t nthreads,
 class ordered_scheduler;
 class ordered {
   ordered_scheduler* sch;
-  function<void(ordered*)> init;
+  dt::function<void(ordered*)> init;
   public:
-    ordered(ordered_scheduler*, function<void(ordered*)>);
-    void parallel(function<void(size_t)> pre_ordered,
-                  function<void(size_t)> do_ordered,
-                  function<void(size_t)> post_ordered);
+    ordered(ordered_scheduler*, dt::function<void(ordered*)>);
+    void parallel(dt::function<void(size_t)> pre_ordered,
+                  dt::function<void(size_t)> do_ordered,
+                  dt::function<void(size_t)> post_ordered);
     void set_n_iterations(size_t n);
 };
 
 void parallel_for_ordered(size_t n_iterations, size_t n_threads,
-                          function<void(ordered*)> fn);
+                          dt::function<void(ordered*)> fn);
 
 
 }  // namespace dt

@@ -5,13 +5,13 @@
 #include <iostream>
 #include <numeric>     // std::accumulate
 #include <omp.h>
-#include "threadpool/api.h"
+#include "thpool1/api.h"
 #include "scenario.h"
 
 
 scenario::scenario() {
   max_time = 1.0;
-  nthreads = dt::get_hardware_concurrency();
+  nthreads = dt1::get_hardware_concurrency();
 }
 
 scenario::~scenario() {}
@@ -102,12 +102,12 @@ static void startup_omp() {
   }
 }
 
-static void startup_threadpool() {
+static void startup_thpool1() {
   std::mutex m;
   std::vector<int> threadnums;
-  dt::parallel_region(
+  dt1::parallel_region(
     [&]{
-      size_t i = dt::this_thread_index();
+      size_t i = dt1::this_thread_index();
       std::lock_guard<std::mutex> lock(m);
       threadnums.push_back(omp_get_thread_num());
     });
@@ -116,16 +116,16 @@ static void startup_threadpool() {
 
 void scenario::benchmark(int backends) {
   std::cout << "Benchmarking [nthreads=" << nthreads << "] " << name() << "\n";
+  if (backends & Backend::THP) {
+    startup_thpool1();
+    setup();
+    benchmarkit("ThPool1", [&]{ run_thpool1(); }, max_time);
+    teardown();
+  }
   if (backends & Backend::OMP) {
     startup_omp();
     setup();
-    benchmarkit("OMP       ", [&]{ run_omp(); }, max_time);
-    teardown();
-  }
-  if (backends & Backend::THP) {
-    startup_threadpool();
-    setup();
-    benchmarkit("ThreadPool", [&]{ run_threadpool(); }, max_time);
+    benchmarkit("OMP    ", [&]{ run_omp(); }, max_time);
     teardown();
   }
 }

@@ -18,28 +18,30 @@ ifeq ($(UNAME), Darwin)
   LIBRARIES += -L/usr/local/opt/llvm/lib
 endif
 
-threadpool_objects = \
-	threadpool/parallel_for_dynamic.o \
-	threadpool/parallel_for_ordered.o \
-	threadpool/parallel_for_static.o \
-	threadpool/parallel_region.o \
-	threadpool/thread_pool.o \
-	threadpool/thread_scheduler.o \
-	threadpool/thread_team.o \
-	threadpool/thread_worker.o
+
+thpool1_objects = \
+	thpool1/parallel_for_dynamic.o \
+	thpool1/parallel_for_ordered.o \
+	thpool1/parallel_for_static.o \
+	thpool1/parallel_region.o \
+	thpool1/thread_pool.o \
+	thpool1/thread_scheduler.o \
+	thpool1/thread_team.o \
+	thpool1/thread_worker.o
 
 all: build
 
 clean:
 	rm -f *.o
 	rm -f threadpool/*.o
+	rm -f thpool1/*.o
 	rm -f ./parallel
 
 debug:
 	DEBUG=1 \
 	$(MAKE) build
 
-build: main.o scenario.o scenario1.o scenario2.o $(threadpool_objects)
+build: main.o scenario.o scenario1.o scenario2.o $(thpool1_objects)
 	$(CC) $(LDFLAGS) $(LIBRARIES) -o parallel $+
 
 
@@ -57,40 +59,40 @@ scenario2.o: scenario2.cc scenario.h
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
 
-threadpool_headers = \
-	threadpool/api.h \
-	threadpool/atomic.h \
-	threadpool/function.h \
-	threadpool/macros.h \
-	threadpool/shared_mutex.h \
-	threadpool/thread_pool.h \
-	threadpool/thread_scheduler.h \
-	threadpool/thread_team.h \
-	threadpool/thread_worker.h
 
+thpool1_headers = \
+	thpool1/api.h \
+	thpool1/atomic.h \
+	thpool1/shared_mutex.h \
+	thpool1/thread_pool.h \
+	thpool1/thread_scheduler.h \
+	thpool1/thread_team.h \
+	thpool1/thread_worker.h \
+	utils/assert.h \
+	utils/exceptions.h \
+	utils/function.h \
+	utils/macros.h
 
-threadpool/parallel_for_dynamic.o: threadpool/parallel_for_dynamic.cc $(threadpool_headers)
+thpool1/parallel_for_dynamic.o: thpool1/parallel_for_dynamic.cc $(thpool1_headers)
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
-threadpool/parallel_for_ordered.o: threadpool/parallel_for_ordered.cc $(threadpool_headers)
+thpool1/parallel_for_ordered.o: thpool1/parallel_for_ordered.cc $(thpool1_headers)
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
-threadpool/parallel_for_static.o: threadpool/parallel_for_static.cc $(threadpool_headers)
+thpool1/parallel_for_static.o: thpool1/parallel_for_static.cc $(thpool1_headers)
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
-threadpool/parallel_region.o: threadpool/parallel_region.cc $(threadpool_headers)
+thpool1/parallel_region.o: thpool1/parallel_region.cc $(thpool1_headers)
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
-threadpool/thread_pool.o: threadpool/thread_pool.cc $(threadpool_headers)
+thpool1/thread_pool.o: thpool1/thread_pool.cc $(thpool1_headers)
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
-threadpool/thread_scheduler.o: threadpool/thread_scheduler.cc $(threadpool_headers)
+thpool1/thread_scheduler.o: thpool1/thread_scheduler.cc $(thpool1_headers)
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
-threadpool/thread_team.o: threadpool/thread_team.cc $(threadpool_headers)
+thpool1/thread_team.o: thpool1/thread_team.cc $(thpool1_headers)
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
-threadpool/thread_worker.o: threadpool/thread_worker.cc $(threadpool_headers)
+thpool1/thread_worker.o: thpool1/thread_worker.cc $(thpool1_headers)
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
-
-

@@ -4,7 +4,7 @@
 #include <random>
 #include <sstream>
 #include <omp.h>
-#include "threadpool/api.h"
+#include "thpool1/api.h"
 #include "scenario.h"
 
 static void summarize(std::vector<double>& times) {
@@ -114,13 +114,13 @@ void scenario2::run_omp() {
 }
 
 
-void scenario2::run_threadpool() {
+void scenario2::run_thpool1() {
   auto g0 = std::chrono::high_resolution_clock::now();
-  dt::parallel_region(
+  dt1::parallel_region(
     /* nthreads = */ nthreads,
     [=]{
       auto t0 = std::chrono::high_resolution_clock::now();
-      size_t ith = dt::this_thread_index();
+      size_t ith = dt1::this_thread_index();
       volatile double res = 0.0;
       for (size_t i = 0; i < n; ++i) {
         res += std::sin(1.0 * i);

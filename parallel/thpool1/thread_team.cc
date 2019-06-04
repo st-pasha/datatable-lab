@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include <exception>
-#include "threadpool/api.h"
-#include "threadpool/thread_pool.h"
-#include "threadpool/thread_scheduler.h"
-#include "threadpool/thread_team.h"
-namespace dt {
+#include "thpool1/api.h"
+#include "thpool1/thread_pool.h"
+#include "thpool1/thread_scheduler.h"
+#include "thpool1/thread_team.h"
+#include "utils/exceptions.h"
+namespace dt1 {
 
 
 thread_team::thread_team(size_t nth, thread_pool* pool)
@@ -28,7 +28,7 @@ thread_team::thread_team(size_t nth, thread_pool* pool)
     barrier_counter {0}
 {
   if (thpool->current_team) {
-    throw std::runtime_error("Unable to create a nested thread team");
+    throw RuntimeError() << "Unable to create a nested thread team";
   }
   thpool->current_team = this;
 }

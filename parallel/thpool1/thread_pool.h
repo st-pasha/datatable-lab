@@ -13,14 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_PARALLEL_THREAD_POOL_h
-#define dt_PARALLEL_THREAD_POOL_h
+#ifndef dt1_PARALLEL_THREAD_POOL_h
+#define dt1_PARALLEL_THREAD_POOL_h
 #include <mutex>               // std::mutex
 #include <thread>              // std::thread::id
 #include <vector>              // std::vector
-#include "threadpool/thread_scheduler.h"
-#include "threadpool/thread_worker.h"
-namespace dt {
+#include "thpool1/thread_scheduler.h"
+#include "thpool1/thread_worker.h"
+namespace dt1 {
 using std::size_t;
 
 class thread_team;
@@ -88,6 +88,8 @@ class thread_pool {
     bool in_master_thread() const noexcept;
     bool in_parallel_region() const noexcept;
     size_t n_threads_in_team() const noexcept;
+
+    static void init_options();
 
   private:
     thread_pool();

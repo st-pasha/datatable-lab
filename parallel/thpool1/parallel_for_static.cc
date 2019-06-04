@@ -13,10 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#include <algorithm>  // std::min
-#include "threadpool/api.h"
-#include "threadpool/function.h"
-namespace dt {
+#include <algorithm>
+#include "thpool1/api.h"
+#include "utils/assert.h"
+#include "utils/function.h"
+namespace dt1 {
 
 
 //------------------------------------------------------------------------------
@@ -27,9 +28,9 @@ void _parallel_for_static(size_t nrows, size_t min_chunk_size,
                           size_t nthreads_in,
                           std::function<void(size_t, size_t)> fn)
 {
-  size_t nthreads = nthreads_in? nthreads_in : dt::num_threads_in_pool();
+  size_t nthreads = nthreads_in? nthreads_in : num_threads_in_pool();
   size_t k = std::min(nrows / min_chunk_size, nthreads);
-  size_t ith = dt::this_thread_index();
+  size_t ith = this_thread_index();
 
   // Standard parallel loop
   if (ith == size_t(-1)) {
@@ -41,7 +42,7 @@ void _parallel_for_static(size_t nrows, size_t min_chunk_size,
       size_t chunksize = nrows / k;
       size_t nchunks = nrows / chunksize;
 
-      dt::parallel_region(nth,
+      parallel_region(nth,
         [=] {
           size_t ithread = this_thread_index();
           for (size_t j = ithread; j < nchunks; j += nth) {
@@ -61,7 +62,7 @@ void _parallel_for_static(size_t nrows, size_t min_chunk_size,
     else {
       size_t nth = num_threads_in_team();
       // Cannot change numnber of threads, if in a parallel region
-      assert(nth == nthreads);
+      xassert(nth == nthreads);
       size_t chunksize = nrows / k;
       size_t nchunks = nrows / chunksize;
 

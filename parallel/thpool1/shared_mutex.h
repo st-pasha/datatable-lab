@@ -10,12 +10,13 @@
 //   +/5de42e6621b3d0131472c3f8838b7f0ccf3e8963/sources/cxx-stl/llvm-libc++/
 //   libcxx/include/shared_mutex
 //------------------------------------------------------------------------------
-#ifndef dt_PARALLEL_SHARED_MUTEX_h
-#define dt_PARALLEL_SHARED_MUTEX_h
+#ifndef dt1_PARALLEL_SHARED_MUTEX_h
+#define dt1_PARALLEL_SHARED_MUTEX_h
 #include <atomic>              // std::atomic
 #include <condition_variable>  // std::condition_variable
 #include <mutex>               // std::mutex, std::unique_lock
-namespace dt {
+
+namespace dt1 {
 
 
 //------------------------------------------------------------------------------
@@ -202,15 +203,15 @@ class shared_bmutex {
  *
  *     // mutex variable must previously be declared and accessible from
  *     // multiple threads
- *     dt::shared_mutex shmutex;
+ *     shared_mutex shmutex;
  *     ...
  *
  *     { // Acquire read-only lock
- *       dt::shared_lock< dt::shared_mutex> lock(shmutex, false);
+ *       shared_lock< shared_mutex> lock(shmutex, false);
  *     }
  *
  *     { // Acquire exclusive lock
- *       dt::shared_lock< dt::shared_mutex> lock(shmutex, true);
+ *       shared_lock< shared_mutex> lock(shmutex, true);
  *     }
  */
 template <typename T>

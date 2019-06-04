@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_PARALLEL_THREAD_TEAM_h
-#define dt_PARALLEL_THREAD_TEAM_h
+#ifndef dt1_PARALLEL_THREAD_TEAM_h
+#define dt1_PARALLEL_THREAD_TEAM_h
 #include <atomic>
 #include <cstddef>
-#include "threadpool/thread_pool.h"
+#include "thpool1/thread_pool.h"
 
-namespace dt {
+namespace dt1 {
 using std::size_t;
 
 // Forward-declare

@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_PARALLEL_ATOMIC_h
-#define dt_PARALLEL_ATOMIC_h
+#ifndef dt1_PARALLEL_ATOMIC_h
+#define dt1_PARALLEL_ATOMIC_h
 #include <atomic>       // std::atomic, std::memory_order
 #include <cstring>      // std::memcpy
 #include <type_traits>  // std::is_floating_point, std::enable_if
-namespace dt {
+namespace dt1 {
 
 template <typename T> struct int_from_real {};
 template <> struct int_from_real<float> { using t = int32_t; };

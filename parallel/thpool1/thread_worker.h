@@ -13,14 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
-#ifndef dt_PARALLEL_THREAD_WORKER_h
-#define dt_PARALLEL_THREAD_WORKER_h
+#ifndef dt1_PARALLEL_THREAD_WORKER_h
+#define dt1_PARALLEL_THREAD_WORKER_h
 #include <condition_variable>   // std::condition_variable
 #include <cstddef>              // std::size_t
 #include <mutex>                // std::mutex
 #include <thread>               // std::thread
-#include "threadpool/thread_scheduler.h"
-namespace dt {
+#include "thpool1/thread_scheduler.h"
+namespace dt1 {
 using std::size_t;
 
 // Forward-declare
@@ -55,7 +55,6 @@ class thread_worker {
     ~thread_worker();
 
     void run() noexcept;
-    void run_master(thread_scheduler*) noexcept;
     size_t get_index() const noexcept;
 };
 
@@ -88,8 +87,7 @@ class thread_worker {
  *   - set `tsleep[0].next_scheduler` to the job that needs to be executed;
  *   - set `tsleep[1].next_scheduler` to nullptr;
  *   - change `index` from 0 to 1;
- *   - unlock the mutex and notify all threads waiting on
- *     `tsleep[0].wakeup_all_threads_cv`.
+ *   - unlock the mutex and notify all threads waiting on `tsleep[0].alarm`.
  *
  * As the threads awaken, they check their task's `next_scheduler` property, see
  * that it is now not-null, they will switch to that scheduler and finish their
@@ -115,9 +113,9 @@ class worker_controller : public thread_scheduler {
   private:
     struct sleep_task : public thread_task {
       std::mutex mutex;
-      std::condition_variable wakeup_all_threads_cv;
+      std::condition_variable alarm;
       thread_scheduler* next_scheduler = nullptr;
-      size_t n_threads_not_sleeping;
+      size_t n_threads_sleeping = 0;
 
       void execute(thread_worker* worker) override;
     };
@@ -136,22 +134,19 @@ class worker_controller : public thread_scheduler {
     // If an exception occurs during execution, it will be saved here
     std::exception_ptr saved_exception;
 
-    // Thread-worker object corresponding to the master thread.
-    thread_worker* master_worker;
-
   public:
     thread_task* get_next_task(size_t thread_index) override;
 
     // Called from the master thread, this function will awaken all threads
     // in the thread pool, and give them `job` to execute.
     // Precondition: that all threads in the pool are currently sleeping.
-    void awaken_and_run(thread_scheduler* job, size_t nthreads);
+    void awaken_and_run(thread_scheduler* job);
 
     // Called from the master thread, this function will block until all the
     // work is finished and all worker threads have been put to sleep. If there
     // was an exception during execution of any of the tasks, this exception
     // will be rethrown here (but only after all workers were put to sleep).
-    void join();
+    void join(size_t nthreads);
 
     // Called from worker threads, within the `catch(...){ }` block, this method
     // is used to signal that an exception have occurred. The method will save
@@ -160,9 +155,6 @@ class worker_controller : public thread_scheduler {
 
     // Return true if there is a task currently being run in parallel.
     bool is_running() const noexcept;
-
-    void expect_new_thread();
-    void set_master_worker(thread_worker*) noexcept;
 
   private:
     // Helper for thread_shutdown_scheduler: mark the current thread as if it

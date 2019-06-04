@@ -15,13 +15,14 @@
 //------------------------------------------------------------------------------
 #include <atomic>     // std::atomic
 #include <vector>     // std::vector
-#include "threadpool/api.h"
-#include "threadpool/thread_pool.h"
-#include "threadpool/thread_scheduler.h"
-#include "threadpool/thread_team.h"
-#include "threadpool/function.h"
-#include "threadpool/macros.h"          // cache_aligned
-namespace dt {
+#include "thpool1/api.h"
+#include "thpool1/thread_pool.h"
+#include "thpool1/thread_scheduler.h"
+#include "thpool1/thread_team.h"
+#include "utils/assert.h"
+#include "utils/function.h"
+#include "utils/macros.h"          // cache_aligned
+namespace dt1 {
 
 
 //------------------------------------------------------------------------------
@@ -131,7 +132,7 @@ void dynamic_scheduler::abort_execution() {
 //------------------------------------------------------------------------------
 
 void parallel_for_dynamic(size_t nrows, size_t nthreads, dynamicfn_t fn) {
-  size_t ith = dt::this_thread_index();
+  size_t ith = this_thread_index();
 
   // Running from the master thread
   if (ith == size_t(-1)) {
@@ -150,6 +151,7 @@ void parallel_for_dynamic(size_t nrows, size_t nthreads, dynamicfn_t fn) {
   else {
     thread_team* tt = thread_pool::get_team_unchecked();
     // Cannot change number of threads when in a parallel region
+    xassert(nthreads == tt->size());
     auto sch = tt->shared_scheduler<dynamic_scheduler>(nthreads, nrows);
     sch->set_task(fn, ith);
     sch->execute_in_current_thread();
@@ -158,7 +160,7 @@ void parallel_for_dynamic(size_t nrows, size_t nthreads, dynamicfn_t fn) {
 
 
 void parallel_for_dynamic(size_t nrows, dynamicfn_t fn) {
-  parallel_for_dynamic(nrows, dt::num_threads_available(), fn);
+  parallel_for_dynamic(nrows, num_threads_available(), fn);
 }
 
 

@@ -14,23 +14,24 @@
 // limitations under the License.
 //------------------------------------------------------------------------------
 #include <algorithm>  // std::min
-#include <exception>
 #include <mutex>      // std::lock_guard
 #include <thread>     // std::this_thread
 #include <vector>     // std::vector
-#include "threadpool/api.h"
-#include "threadpool/spin_mutex.h"
-#include "threadpool/thread_scheduler.h"
-#include "threadpool/thread_team.h"
-#include "threadpool/function.h"
-namespace dt {
+#include "thpool1/api.h"
+#include "thpool1/spin_mutex.h"
+#include "thpool1/thread_scheduler.h"
+#include "thpool1/thread_team.h"
+#include "utils/assert.h"
+#include "utils/exceptions.h"
+#include "utils/function.h"
+namespace dt1 {
 
 
 
 //------------------------------------------------------------------------------
 // ordered_task
 //------------------------------------------------------------------------------
-using f1t = function<void(size_t)>;
+using f1t = dt::function<void(size_t)>;
 static f1t noop = [](size_t) {};
 
 class ordered_task : public thread_task {
@@ -99,7 +100,7 @@ void ordered_task::execute(thread_worker*) {
     case ORDERING:  ordered(n_iter); break;
     case FINISHING: post_ordered(n_iter); break;
     default:
-      throw std::runtime_error("Invalid state = " + std::to_string(state));
+      throw RuntimeError() << "Invalid state = " << state; // LCOV_EXCL_LINE
   }
 }
 
@@ -143,7 +144,7 @@ class ordered_scheduler : public thread_scheduler {
     static constexpr size_t NO_THREAD = size_t(-1);
     static constexpr size_t INVALID_THREAD = size_t(-2);
     wait_task waittask;
-    dt::spin_mutex mutex;  // 1 byte
+    spin_mutex mutex;  // 1 byte
     size_t : 56;
     size_t next_to_start;
     size_t next_to_order;
@@ -160,7 +161,8 @@ class ordered_scheduler : public thread_scheduler {
 };
 
 
-ordered_scheduler::ordered_scheduler(size_t ntasks, size_t nthreads, size_t niters)
+ordered_scheduler::ordered_scheduler(size_t ntasks, size_t nthreads,
+                                     size_t niters)
   : n_tasks(ntasks),
     n_threads(nthreads),
     n_iterations(niters),
@@ -241,7 +243,7 @@ void ordered_scheduler::abort_execution() {
 // ordered
 //------------------------------------------------------------------------------
 
-ordered::ordered(ordered_scheduler* s, function<void(ordered*)> f)
+ordered::ordered(ordered_scheduler* s, dt::function<void(ordered*)> f)
   : sch(s), init(f) {}
 
 /**
@@ -254,7 +256,7 @@ ordered::ordered(ordered_scheduler* s, function<void(ordered*)> f)
  *
  * The syntax for parallel ordered for-loop looks like this:
  *
- *     dt::parallel_for_ordered(n,
+ *     parallel_for_ordered(n,
  *       [&](ordered* o) {
  *         ... prepare context ...
  *         o->parallel(
@@ -288,9 +290,9 @@ ordered::ordered(ordered_scheduler* s, function<void(ordered*)> f)
  * exit each level of the `init()` function, running the "cleanup context" part
  * of its body.
  */
-void ordered::parallel(function<void(size_t)> pre_ordered,
-                       function<void(size_t)> do_ordered,
-                       function<void(size_t)> post_ordered)
+void ordered::parallel(dt::function<void(size_t)> pre_ordered,
+                       dt::function<void(size_t)> do_ordered,
+                       dt::function<void(size_t)> post_ordered)
 {
   if (sch->n_threads <= 1) {
     if (!pre_ordered)  pre_ordered = noop;
@@ -315,7 +317,7 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
 
 
 void ordered::set_n_iterations(size_t n) {
-  std::lock_guard<dt::spin_mutex> lock(sch->mutex);
+  std::lock_guard<spin_mutex> lock(sch->mutex);
   size_t delta = n - sch->n_iterations;
   sch->n_iterations = n;
 }
@@ -328,12 +330,13 @@ void ordered::set_n_iterations(size_t n) {
 //------------------------------------------------------------------------------
 
 void parallel_for_ordered(size_t niters, size_t nthreads,
-                          function<void(ordered*)> fn)
+                          dt::function<void(ordered*)> fn)
 {
   if (!niters) return;
 
   thread_pool* thpool = thread_pool::get_instance();
   thpool->instantiate_threads();  // temp fix
+  xassert(!thpool->in_parallel_region());
   size_t nthreads0 = thpool->size();
   if (nthreads > nthreads0) nthreads = nthreads0;
 
