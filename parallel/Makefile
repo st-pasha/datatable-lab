@@ -29,19 +29,31 @@ thpool1_objects = \
 	thpool1/thread_team.o \
 	thpool1/thread_worker.o
 
+thpool2_objects = \
+	thpool2/parallel_for_dynamic.o \
+	thpool2/parallel_for_ordered.o \
+	thpool2/parallel_for_static.o \
+	thpool2/parallel_region.o \
+	thpool2/monitor_thread.o \
+	thpool2/thread_pool.o \
+	thpool2/thread_scheduler.o \
+	thpool2/thread_team.o \
+	thpool2/thread_worker.o
+
 all: build
 
 clean:
 	rm -f *.o
 	rm -f threadpool/*.o
 	rm -f thpool1/*.o
+	rm -f thpool2/*.o
 	rm -f ./parallel
 
 debug:
 	DEBUG=1 \
 	$(MAKE) build
 
-build: main.o scenario.o scenario1.o scenario2.o $(thpool1_objects)
+build: main.o scenario.o scenario1.o scenario2.o $(thpool1_objects) $(thpool2_objects)
 	$(CC) $(LDFLAGS) $(LIBRARIES) -o parallel $+
 
 
@@ -95,4 +107,48 @@ thpool1/thread_team.o: thpool1/thread_team.cc $(thpool1_headers)
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
 thpool1/thread_worker.o: thpool1/thread_worker.cc $(thpool1_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+
+
+
+thpool2_headers = \
+	thpool2/api.h \
+	thpool2/atomic.h \
+	thpool2/monitor_thread.h \
+	thpool2/shared_mutex.h \
+	thpool2/thread_pool.h \
+	thpool2/thread_scheduler.h \
+	thpool2/thread_team.h \
+	thpool2/thread_worker.h \
+	utils/assert.h \
+	utils/exceptions.h \
+	utils/function.h \
+	utils/macros.h
+
+thpool2/parallel_for_dynamic.o: thpool2/parallel_for_dynamic.cc $(thpool2_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+thpool2/parallel_for_ordered.o: thpool2/parallel_for_ordered.cc $(thpool2_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+thpool2/parallel_for_static.o: thpool2/parallel_for_static.cc $(thpool2_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+thpool2/parallel_region.o: thpool2/parallel_region.cc $(thpool2_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+thpool2/monitor_thread.o: thpool2/monitor_thread.cc $(thpool2_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+thpool2/thread_pool.o: thpool2/thread_pool.cc $(thpool2_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+thpool2/thread_scheduler.o: thpool2/thread_scheduler.cc $(thpool2_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+thpool2/thread_team.o: thpool2/thread_team.cc $(thpool2_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+thpool2/thread_worker.o: thpool2/thread_worker.cc $(thpool2_headers)
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<

@@ -7,7 +7,8 @@
 
 enum Backend {
   OMP = 1,
-  THP = 2
+  TP1 = 2,
+  TP2 = 3,
 };
 
 
@@ -24,13 +25,14 @@ class scenario {
     void set_nthreads(int nth);
     void set_max_time(double t);
     virtual void setup();
-    void benchmark(int backends = Backend::OMP | Backend::THP);
+    void benchmark(int backends = Backend::OMP | Backend::TP1 | Backend::TP2);
     virtual void teardown();
 
   protected:
     virtual std::string name() = 0;
     virtual void run_omp() = 0;
     virtual void run_thpool1() = 0;
+    virtual void run_thpool2() = 0;
 };
 
 using scenptr = std::unique_ptr<scenario>;
@@ -49,6 +51,7 @@ class scenario1 : public scenario {
     std::string name() override;
     void run_omp() override;
     void run_thpool1() override;
+    void run_thpool2() override;
 };
 
 
@@ -73,6 +76,7 @@ class scenario2 : public scenario {
     std::string name() override;
     void run_omp() override;
     void run_thpool1() override;
+    void run_thpool2() override;
 };
 
 

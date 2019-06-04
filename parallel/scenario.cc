@@ -6,6 +6,9 @@
 #include <numeric>     // std::accumulate
 #include <omp.h>
 #include "thpool1/api.h"
+#include "thpool2/api.h"
+#include "thpool1/thread_pool.h"
+#include "thpool2/thread_pool.h"
 #include "scenario.h"
 
 
@@ -113,14 +116,40 @@ static void startup_thpool1() {
     });
 }
 
+static void stop_thpool1() {
+  dt1::thread_pool::get_instance()->resize(0);
+}
+
+static void startup_thpool2() {
+  std::mutex m;
+  std::vector<int> threadnums;
+  dt2::parallel_region(
+    [&]{
+      size_t i = dt2::this_thread_index();
+      std::lock_guard<std::mutex> lock(m);
+      threadnums.push_back(omp_get_thread_num());
+    });
+}
+
+static void stop_thpool2() {
+  dt2::thpool->resize(1);
+}
 
 void scenario::benchmark(int backends) {
   std::cout << "Benchmarking [nthreads=" << nthreads << "] " << name() << "\n";
-  if (backends & Backend::THP) {
+  if (backends & Backend::TP2) {
+    startup_thpool2();
+    setup();
+    benchmarkit("ThPool2", [&]{ run_thpool2(); }, max_time);
+    teardown();
+    stop_thpool2();
+  }
+  if (backends & Backend::TP1) {
     startup_thpool1();
     setup();
     benchmarkit("ThPool1", [&]{ run_thpool1(); }, max_time);
     teardown();
+    stop_thpool1();
   }
   if (backends & Backend::OMP) {
     startup_omp();
