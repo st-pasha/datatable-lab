@@ -8,7 +8,7 @@
 enum Backend {
   OMP = 1,
   TP1 = 2,
-  TP2 = 3,
+  TP2 = 4,
 };
 
 
@@ -16,16 +16,17 @@ class scenario {
   protected:
     double max_time;
     int nthreads;
-    int : 32;
+    int backends;
 
   public:
     scenario();
     virtual ~scenario();
 
     void set_nthreads(int nth);
+    void set_backends(int);
     void set_max_time(double t);
     virtual void setup();
-    void benchmark(int backends = Backend::OMP | Backend::TP1 | Backend::TP2);
+    void benchmark();
     virtual void teardown();
 
   protected:

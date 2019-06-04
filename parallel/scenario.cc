@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <iostream>
 #include <numeric>     // std::accumulate
+#include <thread>
 #include <omp.h>
 #include "thpool1/api.h"
 #include "thpool2/api.h"
@@ -15,12 +16,17 @@
 scenario::scenario() {
   max_time = 1.0;
   nthreads = dt1::get_hardware_concurrency();
+  backends = Backend::OMP | Backend::TP1 | Backend::TP2;
 }
 
 scenario::~scenario() {}
 
 void scenario::set_nthreads(int nth) {
   nthreads = nth;
+}
+
+void scenario::set_backends(int b) {
+  backends = b;
 }
 
 void scenario::set_max_time(double t) {
@@ -135,15 +141,8 @@ static void stop_thpool2() {
   dt2::thpool->resize(1);
 }
 
-void scenario::benchmark(int backends) {
+void scenario::benchmark() {
   std::cout << "Benchmarking [nthreads=" << nthreads << "] " << name() << "\n";
-  if (backends & Backend::TP2) {
-    startup_thpool2();
-    setup();
-    benchmarkit("ThPool2", [&]{ run_thpool2(); }, max_time);
-    teardown();
-    stop_thpool2();
-  }
   if (backends & Backend::TP1) {
     startup_thpool1();
     setup();
@@ -151,6 +150,15 @@ void scenario::benchmark(int backends) {
     teardown();
     stop_thpool1();
   }
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  if (backends & Backend::TP2) {
+    startup_thpool2();
+    setup();
+    benchmarkit("ThPool2", [&]{ run_thpool2(); }, max_time);
+    teardown();
+    stop_thpool2();
+  }
+  std::this_thread::sleep_for(std::chrono::milliseconds(200));
   if (backends & Backend::OMP) {
     startup_omp();
     setup();

@@ -23,6 +23,8 @@ struct config {
   double time;
   int nthreads;
   int task;
+  int backend;
+  int : 32;
 
   config() {
     seed = 1;
@@ -30,6 +32,7 @@ struct config {
     time = 1.0;
     nthreads = dt1::get_hardware_concurrency();
     task = 1;
+    backend = Backend::OMP | Backend::TP1 | Backend::TP2;
   }
 
   void parse(int argc, char** argv) {
@@ -39,6 +42,7 @@ struct config {
       {"nthreads", 1, 0, 0},
       {"time", 1, 0, 0},
       {"task", 1, 0, 0},
+      {"backend", 1, 0, 0},
       {nullptr, 0, nullptr, 0}  // sentinel
     };
 
@@ -53,6 +57,7 @@ struct config {
           if (option_index == 2) nthreads = atoi(optarg);
           if (option_index == 3) time = atof(optarg);
           if (option_index == 4) task = atoi(optarg);
+          if (option_index == 5) backend = atoi(optarg);
         }
       }
     }
@@ -65,6 +70,7 @@ struct config {
     printf("  time     = %.1f\n", time);
     printf("  nthreads = %d\n", nthreads);
     printf("  task     = %d\n", task);
+    printf("  backend  = %d\n", backend);
     printf("\n");
   }
 };
@@ -112,6 +118,7 @@ int main(int argc, char** argv) {
   if (sc) {
     sc->set_nthreads(cfg.nthreads);
     sc->set_max_time(cfg.time);
+    sc->set_backends(cfg.backend);
     sc->benchmark();
   }
 }
