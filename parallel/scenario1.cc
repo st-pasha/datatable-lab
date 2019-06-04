@@ -1,8 +1,6 @@
 #include <cmath>
 #include <random>
 #include <sstream>
-#include "thpool1/api.h"
-#include "thpool2/api.h"
 #include "scenario.h"
 
 
@@ -59,6 +57,21 @@ void scenario1::run_thpool2() {
   double* outputs = output_data.data();
 
   dt2::parallel_for_static(
+    /* nrows = */ n,
+    /* min_chunk_size = */ 1024,
+    /* nthreads = */ nthreads,
+    [&](size_t i) {
+      outputs[i] = std::sin(inputs[i]);
+    });
+}
+
+
+void scenario1::run_thpool3() {
+  size_t n = input_data.size();
+  const double* inputs = input_data.data();
+  double* outputs = output_data.data();
+
+  dt3::parallel_for_static(
     /* nrows = */ n,
     /* min_chunk_size = */ 1024,
     /* nthreads = */ nthreads,

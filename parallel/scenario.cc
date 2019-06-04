@@ -5,11 +5,9 @@
 #include <iostream>
 #include <numeric>     // std::accumulate
 #include <thread>
-#include <omp.h>
-#include "thpool1/api.h"
-#include "thpool2/api.h"
 #include "thpool1/thread_pool.h"
 #include "thpool2/thread_pool.h"
+#include "thpool3/thread_pool.h"
 #include "scenario.h"
 
 
@@ -51,7 +49,7 @@ template <typename F>
 static void benchmarkit(const std::string& backend_name, F fun,
                         double max_runtime = 1.0)
 {
-  std::cout << "  " << backend_name << ": ";
+  std::cout << "  \x1B[1m" << backend_name << "\x1B[m: ";
   std::vector<double> durations;
   double total_time = 0.0;
   int n_runs = 0;
@@ -141,6 +139,21 @@ static void stop_thpool2() {
   dt2::thpool->resize(1);
 }
 
+static void startup_thpool3() {
+  std::mutex m;
+  std::vector<int> threadnums;
+  dt3::parallel_region(
+    [&]{
+      size_t i = dt3::this_thread_index();
+      std::lock_guard<std::mutex> lock(m);
+      threadnums.push_back(omp_get_thread_num());
+    });
+}
+
+static void stop_thpool3() {
+  dt3::thpool->resize(1);
+}
+
 void scenario::benchmark() {
   std::cout << "Benchmarking [nthreads=" << nthreads << "] " << name() << "\n";
   if (backends & Backend::TP1) {
@@ -150,7 +163,6 @@ void scenario::benchmark() {
     teardown();
     stop_thpool1();
   }
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
   if (backends & Backend::TP2) {
     startup_thpool2();
     setup();
@@ -158,7 +170,13 @@ void scenario::benchmark() {
     teardown();
     stop_thpool2();
   }
-  std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  if (backends & Backend::TP3) {
+    startup_thpool3();
+    setup();
+    benchmarkit("ThPool3", [&]{ run_thpool3(); }, max_time);
+    teardown();
+    stop_thpool3();
+  }
   if (backends & Backend::OMP) {
     startup_omp();
     setup();

@@ -4,11 +4,16 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <omp.h>
+#include "thpool1/api.h"
+#include "thpool2/api.h"
+#include "thpool3/api.h"
 
 enum Backend {
   OMP = 1,
   TP1 = 2,
   TP2 = 4,
+  TP3 = 8,
 };
 
 
@@ -34,6 +39,7 @@ class scenario {
     virtual void run_omp() = 0;
     virtual void run_thpool1() = 0;
     virtual void run_thpool2() = 0;
+    virtual void run_thpool3() = 0;
 };
 
 using scenptr = std::unique_ptr<scenario>;
@@ -53,6 +59,7 @@ class scenario1 : public scenario {
     void run_omp() override;
     void run_thpool1() override;
     void run_thpool2() override;
+    void run_thpool3() override;
 };
 
 
@@ -78,6 +85,7 @@ class scenario2 : public scenario {
     void run_omp() override;
     void run_thpool1() override;
     void run_thpool2() override;
+    void run_thpool3() override;
 };
 
 

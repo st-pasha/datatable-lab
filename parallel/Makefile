@@ -40,6 +40,17 @@ thpool2_objects = \
 	thpool2/thread_team.o \
 	thpool2/thread_worker.o
 
+thpool3_objects = \
+	thpool3/parallel_for_dynamic.o \
+	thpool3/parallel_for_ordered.o \
+	thpool3/parallel_for_static.o \
+	thpool3/parallel_region.o \
+	thpool3/monitor_thread.o \
+	thpool3/thread_pool.o \
+	thpool3/thread_scheduler.o \
+	thpool3/thread_team.o \
+	thpool3/thread_worker.o
+
 all: build
 
 clean:
@@ -47,13 +58,14 @@ clean:
 	rm -f threadpool/*.o
 	rm -f thpool1/*.o
 	rm -f thpool2/*.o
+	rm -f thpool3/*.o
 	rm -f ./parallel
 
 debug:
 	DEBUG=1 \
 	$(MAKE) build
 
-build: main.o scenario.o scenario1.o scenario2.o $(thpool1_objects) $(thpool2_objects)
+build: main.o scenario.o scenario1.o scenario2.o $(thpool1_objects) $(thpool2_objects) $(thpool3_objects)
 	$(CC) $(LDFLAGS) $(LIBRARIES) -o parallel $+
 
 
@@ -151,4 +163,47 @@ thpool2/thread_team.o: thpool2/thread_team.cc $(thpool2_headers)
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
 
 thpool2/thread_worker.o: thpool2/thread_worker.cc $(thpool2_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+
+
+thpool3_headers = \
+	thpool3/api.h \
+	thpool3/atomic.h \
+	thpool3/monitor_thread.h \
+	thpool3/shared_mutex.h \
+	thpool3/thread_pool.h \
+	thpool3/thread_scheduler.h \
+	thpool3/thread_team.h \
+	thpool3/thread_worker.h \
+	utils/assert.h \
+	utils/exceptions.h \
+	utils/function.h \
+	utils/macros.h
+
+thpool3/parallel_for_dynamic.o: thpool3/parallel_for_dynamic.cc $(thpool3_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+thpool3/parallel_for_ordered.o: thpool3/parallel_for_ordered.cc $(thpool3_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+thpool3/parallel_for_static.o: thpool3/parallel_for_static.cc $(thpool3_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+thpool3/parallel_region.o: thpool3/parallel_region.cc $(thpool3_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+thpool3/monitor_thread.o: thpool3/monitor_thread.cc $(thpool3_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+thpool3/thread_pool.o: thpool3/thread_pool.cc $(thpool3_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+thpool3/thread_scheduler.o: thpool3/thread_scheduler.cc $(thpool3_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+thpool3/thread_team.o: thpool3/thread_team.cc $(thpool3_headers)
+	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<
+
+thpool3/thread_worker.o: thpool3/thread_worker.cc $(thpool3_headers)
 	$(CC) $(CCFLAGS) $(INCLUDES) -o $@ -c $<

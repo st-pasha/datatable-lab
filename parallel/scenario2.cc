@@ -3,9 +3,6 @@
 #include <iostream>
 #include <random>
 #include <sstream>
-#include <omp.h>
-#include "thpool1/api.h"
-#include "thpool2/api.h"
 #include "scenario.h"
 
 static void summarize(std::vector<double>& times) {
@@ -141,6 +138,25 @@ void scenario2::run_thpool2() {
     [=]{
       auto t0 = std::chrono::high_resolution_clock::now();
       size_t ith = dt2::this_thread_index();
+      volatile double res = 0.0;
+      for (size_t i = 0; i < n; ++i) {
+        res += std::sin(1.0 * i);
+      }
+      auto t1 = std::chrono::high_resolution_clock::now();
+      timings[ith + 1].push_back({t0, t1});
+    });
+  auto g1 = std::chrono::high_resolution_clock::now();
+  timings[0].push_back({g0, g1});
+}
+
+
+void scenario2::run_thpool3() {
+  auto g0 = std::chrono::high_resolution_clock::now();
+  dt3::parallel_region(
+    /* nthreads = */ nthreads,
+    [=]{
+      auto t0 = std::chrono::high_resolution_clock::now();
+      size_t ith = dt3::this_thread_index();
       volatile double res = 0.0;
       for (size_t i = 0; i < n; ++i) {
         res += std::sin(1.0 * i);
