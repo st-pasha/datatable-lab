@@ -126,8 +126,11 @@ void idle_job::sleep_task::execute(thread_worker* worker) {
   // immediately, without having to acquire locks / set up condition
   // variables, etc.
   for (int i = 0; i < LIGHT_SLEEP_ITERATIONS; ++i) {
-    if (next_scheduler.load() != nullptr)
-      goto end_of_sleep;
+    dt3::thread_scheduler* job = next_scheduler.load();
+    if (job != nullptr) {
+      worker->scheduler = job;
+      return;
+    }
   }
 
   // "Deep sleep" state: wait for the `wakeup_all_threads_cv`
@@ -139,7 +142,6 @@ void idle_job::sleep_task::execute(thread_worker* worker) {
     }
   }
 
-  end_of_sleep:
   worker->scheduler = next_scheduler.load();
 }
 
