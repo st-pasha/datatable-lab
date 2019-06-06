@@ -148,7 +148,7 @@ idle_job::idle_job() {
   curr_sleep_task = new sleep_task(this);
   prev_sleep_task = new sleep_task(this);
   n_threads_running = 0;
-  monitor = std::unique_ptr<monitor_thread>(new monitor_thread(this));
+  // monitor = std::unique_ptr<monitor_thread>(new monitor_thread(this));
 }
 
 
@@ -191,7 +191,7 @@ void idle_job::awaken_and_run(thread_scheduler* job, size_t nthreads) {
     // Unlock mutex before awaking all sleeping threads
   }
   wakeup_all_threads_cv.notify_all();
-  monitor->set_active(true);
+  // monitor->set_active(true);
   master_worker->run_master(job);
 }
 
@@ -204,7 +204,7 @@ void idle_job::join() {
   // Clear `.next_scheduler` flag of the previous sleep task, indicating that
   // we no longer run in a parallel region (see `is_running()`).
   prev_sleep_task->next_scheduler = nullptr;
-  monitor->set_active(false);
+  // monitor->set_active(false);
 
   if (saved_exception) {
     std::rethrow_exception(saved_exception);

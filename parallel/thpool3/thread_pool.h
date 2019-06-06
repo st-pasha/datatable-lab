@@ -24,6 +24,7 @@ namespace dt3 {
 using std::size_t;
 
 class thread_team;
+class idle_job;
 
 
 /**
@@ -46,6 +47,7 @@ class thread_team;
  */
 class thread_pool {
   friend class thread_team;
+  friend class idle_job;
   private:
     // Worker instances, each running on its own thread. Each thread has a
     // reference to its own worker, so these workers must be alive as long

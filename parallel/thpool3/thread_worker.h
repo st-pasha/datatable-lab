@@ -23,6 +23,7 @@
 #include <thread>               // std::thread
 #include "thpool3/thread_scheduler.h"
 #include "thpool3/monitor_thread.h"
+#include "thpool3/semaphore.h"
 namespace dt3 {
 using std::size_t;
 
@@ -48,7 +49,7 @@ class thread_worker {
   private:
     const size_t thread_index;
     std::thread  thread;
-    thread_scheduler*  scheduler;
+    thread_scheduler* scheduler;
     idle_job* controller;
 
   public:
@@ -117,9 +118,10 @@ class thread_worker {
 class idle_job : public thread_scheduler {
   private:
     struct sleep_task : public thread_task {
-      static constexpr int LIGHT_SLEEP_ITERATIONS = 65536;
+      // static constexpr int LIGHT_SLEEP_ITERATIONS = 65536;
       idle_job* const controller;
-      std::atomic<thread_scheduler*> next_scheduler;
+      thread_scheduler* next_scheduler;
+      LightweightSemaphore semaphore;
 
       sleep_task(idle_job*);
       void execute(thread_worker* worker) override;
@@ -133,8 +135,8 @@ class idle_job : public thread_scheduler {
     // `curr_sleep_task` flip-flop.
     sleep_task* prev_sleep_task;
 
+    // Global mutex
     std::mutex mutex;
-    std::condition_variable wakeup_all_threads_cv;
 
     // How many threads are currently active (i.e. not sleeping)
     std::atomic<int> n_threads_running;

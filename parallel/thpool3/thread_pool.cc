@@ -107,7 +107,8 @@ void thread_pool::instantiate_threads() {
 void thread_pool::execute_job(thread_scheduler* job) {
   xassert(current_team);
   if (workers.empty()) instantiate_threads();
-  controller.awaken_and_run(job, workers.size());
+  // -1 because master thread doesn't need to be awakened
+  controller.awaken_and_run(job, workers.size() - 1);
   controller.join();
   // careful: workers.size() may not be equal to num_threads_requested during
   // shutdown

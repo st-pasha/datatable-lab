@@ -1,7 +1,11 @@
 #ifndef dt_ASSERT_h
 #define dt_ASSERT_h
 
-#define xassert assert
+#ifdef DEBUG
+  #define xassert assert
+#else
+  #define xassert(s)
+#endif
 
 
 #endif

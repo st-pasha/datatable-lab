@@ -13,7 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //------------------------------------------------------------------------------
+#include <iostream>
 #include "thpool3/thread_worker.h"
+#include "thpool3/thread_pool.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 namespace dt3 {
@@ -108,7 +110,6 @@ size_t thread_worker::get_index() const noexcept {
 
 
 
-
 //------------------------------------------------------------------------------
 // "worker controller" scheduler
 //------------------------------------------------------------------------------
@@ -117,32 +118,10 @@ idle_job::sleep_task::sleep_task(idle_job* ij)
   : controller(ij), next_scheduler{nullptr} {}
 
 void idle_job::sleep_task::execute(thread_worker* worker) {
-  // Atomic; notifies controller that this thread is now sleeping
   controller->n_threads_running--;
-
-  // First, the thread goes into a "light sleep", where it busy-waits
-  // for few thousand iterations for a next job to appear. If during
-  // that time a new job is scheduled - we will pick it up almost
-  // immediately, without having to acquire locks / set up condition
-  // variables, etc.
-  for (int i = 0; i < LIGHT_SLEEP_ITERATIONS; ++i) {
-    dt3::thread_scheduler* job = next_scheduler.load();
-    if (job != nullptr) {
-      worker->scheduler = job;
-      return;
-    }
-  }
-
-  // "Deep sleep" state: wait for the `wakeup_all_threads_cv`
-  // condition variable to be notified.
-  {
-    std::unique_lock<std::mutex> lock(controller->mutex);
-    while (next_scheduler.load() == nullptr) {
-      controller->wakeup_all_threads_cv.wait(lock);
-    }
-  }
-
-  worker->scheduler = next_scheduler.load();
+  semaphore.wait();
+  xassert(next_scheduler);
+  worker->scheduler = next_scheduler;
 }
 
 
@@ -150,7 +129,7 @@ idle_job::idle_job() {
   curr_sleep_task = new sleep_task(this);
   prev_sleep_task = new sleep_task(this);
   n_threads_running = 0;
-  monitor = std::unique_ptr<monitor_thread>(new monitor_thread(this));
+  // monitor = std::unique_ptr<monitor_thread>(new monitor_thread(this));
 }
 
 
@@ -180,20 +159,19 @@ thread_task* idle_job::get_next_task(size_t) {
  * zero, even though no work has been done yet.
  */
 void idle_job::awaken_and_run(thread_scheduler* job, size_t nthreads) {
+  xassert(job);
   xassert(n_threads_running == 0);
+  xassert(prev_sleep_task->next_scheduler == nullptr);
   xassert(curr_sleep_task->next_scheduler == nullptr);
-  // nthreads - 1, because the master never goes to sleep
-  n_threads_running = static_cast<int>(nthreads) - 1;
+  int nth = static_cast<int>(nthreads);
+
+  std::swap(curr_sleep_task, prev_sleep_task);
+  n_threads_running += nth;
   saved_exception = nullptr;
-  {
-    std::lock_guard<std::mutex> lock(mutex);
-    std::swap(curr_sleep_task, prev_sleep_task);
-    curr_sleep_task->next_scheduler = nullptr;
-    prev_sleep_task->next_scheduler = job;
-    // Unlock mutex before awaking all sleeping threads
-  }
-  wakeup_all_threads_cv.notify_all();
-  monitor->set_active(true);
+
+  prev_sleep_task->next_scheduler = job;
+  prev_sleep_task->semaphore.signal(nth);
+  // monitor->set_active(true);
   master_worker->run_master(job);
 }
 
@@ -206,7 +184,7 @@ void idle_job::join() {
   // Clear `.next_scheduler` flag of the previous sleep task, indicating that
   // we no longer run in a parallel region (see `is_running()`).
   prev_sleep_task->next_scheduler = nullptr;
-  monitor->set_active(false);
+  // monitor->set_active(false);
 
   if (saved_exception) {
     std::rethrow_exception(saved_exception);
@@ -239,7 +217,7 @@ void idle_job::catch_exception() noexcept {
     if (!saved_exception) {
       saved_exception = std::current_exception();
     }
-    thread_scheduler* current_job = prev_sleep_task->next_scheduler.load();
+    thread_scheduler* current_job = prev_sleep_task->next_scheduler;
     if (current_job) {
       current_job->abort_execution();
     }
@@ -248,7 +226,7 @@ void idle_job::catch_exception() noexcept {
 
 
 bool idle_job::is_running() const noexcept {
-  return (prev_sleep_task->next_scheduler.load() != nullptr);
+  return (prev_sleep_task->next_scheduler != nullptr);
 }
 
 

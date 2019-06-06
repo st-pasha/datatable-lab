@@ -8,7 +8,7 @@ LDFLAGS += -fopenmp
 ifeq ($(DEBUG),)
 	CCFLAGS += -O3
 else
-	CCFLAGS += -O0 -ggdb
+	CCFLAGS += -O0 -ggdb -DDEBUG
 endif
 
 UNAME := $(shell uname)
@@ -170,6 +170,7 @@ thpool2/thread_worker.o: thpool2/thread_worker.cc $(thpool2_headers)
 thpool3_headers = \
 	thpool3/api.h \
 	thpool3/atomic.h \
+	thpool3/semaphore.h \
 	thpool3/monitor_thread.h \
 	thpool3/shared_mutex.h \
 	thpool3/thread_pool.h \

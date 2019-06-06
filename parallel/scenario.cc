@@ -14,7 +14,7 @@
 scenario::scenario() {
   max_time = 1.0;
   nthreads = dt1::get_hardware_concurrency();
-  backends = Backend::OMP | Backend::TP1 | Backend::TP2;
+  backends = Backend::OMP | Backend::TP1 | Backend::TP2 | Backend::TP3;
 }
 
 scenario::~scenario() {}
