@@ -156,12 +156,12 @@ static void stop_thpool3() {
 
 void scenario::benchmark() {
   std::cout << "Benchmarking [nthreads=" << nthreads << "] " << name() << "\n";
-  if (backends & Backend::TP1) {
-    startup_thpool1();
+  if (backends & Backend::TP3) {
+    startup_thpool3();
     setup();
-    benchmarkit("ThPool1", [&]{ run_thpool1(); }, max_time);
+    benchmarkit("ThPool3", [&]{ run_thpool3(); }, max_time);
     teardown();
-    stop_thpool1();
+    stop_thpool3();
   }
   if (backends & Backend::TP2) {
     startup_thpool2();
@@ -170,12 +170,12 @@ void scenario::benchmark() {
     teardown();
     stop_thpool2();
   }
-  if (backends & Backend::TP3) {
-    startup_thpool3();
+  if (backends & Backend::TP1) {
+    startup_thpool1();
     setup();
-    benchmarkit("ThPool3", [&]{ run_thpool3(); }, max_time);
+    benchmarkit("ThPool1", [&]{ run_thpool1(); }, max_time);
     teardown();
-    stop_thpool3();
+    stop_thpool1();
   }
   if (backends & Backend::OMP) {
     startup_omp();
