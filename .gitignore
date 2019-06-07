@@ -1,2 +1,3 @@
 *.o
 parallel/parallel
+sort/sort
