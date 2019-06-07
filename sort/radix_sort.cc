@@ -14,7 +14,7 @@ void bestsort(int *x, int *o, int N, int K)
   static int INSERT_THRESHOLDS[] = {0, 8, 8, 8, 8, 12, 16, 16, 20, 20, 20, 20, 20,
                     20, 20, 20, 20};
   if (N <= INSERT_THRESHOLDS[K]) {
-    iinsert0_i4(x, o, N, K);
+    insert_sort0<uint32_t>((uint32_t*)x, o, N, K);
   } else {
     radixsort0(x, o, N, K);
   }
@@ -25,7 +25,7 @@ void bestsort_i1(uint8_t *x, int *o, int N, int K)
   static int INSERT_THRESHOLDS[] = {0, 8, 8, 8, 8, 12, 16, 16, 20, 20, 20, 20, 20,
                     20, 20, 20, 20};
   if (N <= INSERT_THRESHOLDS[K]) {
-    iinsert0_i1(x, o, N, K);
+    insert_sort0<uint8_t>((uint8_t*)x, o, N, K);
   } else {
     radixsort0_i1(x, o, N, K);
   }
@@ -192,7 +192,7 @@ void radixsort2(int *x, int *o, int n, int K)
     int *nextx = xx + start;
     int *nexto = oo + start;
     if (nextn <= 6) {
-      iinsert0_i4(nextx, nexto, nextn, shift);
+      insert_sort0<uint32_t>((uint32_t*)nextx, nexto, nextn, shift);
     } else {
       // This will also use (and modify) tmp1 and tmp2
       radixsort0(nextx, nexto, nextn, shift);
@@ -339,7 +339,7 @@ void radixsort3(int *x, int *o, int n, int K)
       uint8_t *nextx = xx + start;
       int *nexto = oo + start;
       if (nextn <= 6) {
-        iinsert0_i1(nextx, nexto, nextn, shift);
+        insert_sort0<uint8_t>(nextx, nexto, nextn, shift);
       } else {
         radixsort0_i1(nextx, nexto, nextn, shift);
       }

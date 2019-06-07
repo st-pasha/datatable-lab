@@ -17,7 +17,11 @@ int *tmp3 = NULL;
 
 #define addptr(p, s)  ((void*)((char*)(p) + (size_t)(s)))
 
-
+// S: element size of x
+// N: number of items in array x (i.e. number of items to be sorted)
+// K: max number of significant bits in elements x, this cannot exceed S*8
+// B:
+//
 int test(const char* algoname, sortfn_t sortfn, int S, int N, int K, int B, int T)
 {
   assert(K <= S*8);
@@ -246,11 +250,11 @@ int main(int argc, char** argv) {
 
   switch (A) {
     case 1:
-      test("4:insert0", (sortfn_t)iinsert0_i4, 4, N, K, B, T);
+      test("4:insert0", (sortfn_t)insert_sort0<uint32_t>, 4, N, K, B, T);
       test("4:insert2", (sortfn_t)iinsert2, 4, N, K, B, T);
       test("4:insert3", (sortfn_t)iinsert3, 4, N, K, B, T);
       if (K <= 8) {
-        test("1:insert0", (sortfn_t)iinsert0_i1, 1, N, K, B, T);
+        test("1:insert0", (sortfn_t)insert_sort0<uint8_t>, 1, N, K, B, T);
         test("1:insert3", (sortfn_t)iinsert3_i1, 1, N, K, B, T);
       }
       break;
@@ -284,7 +288,7 @@ int main(int argc, char** argv) {
 
     case 4: {
       if (N <= 10000) {
-        test("4:insert0", (sortfn_t)iinsert0_i4, 4, N, K, B, T);
+        test("4:insert0", (sortfn_t)insert_sort0<uint32_t>, 4, N, K, B, T);
       } else {
         printf("@4:insert0: -\n");
       }
@@ -316,7 +320,7 @@ int main(int argc, char** argv) {
         return 5;
       }
       if (N <= 10000) {
-        test("1:insert0", (sortfn_t)iinsert0_i1, 1, N, K, B, T);
+        test("1:insert0", (sortfn_t)insert_sort0<uint8_t>, 1, N, K, B, T);
         test("1:insert3", (sortfn_t)iinsert3_i1, 1, N, K, B, T);
       } else {
         printf("@1:insert0: -\n");

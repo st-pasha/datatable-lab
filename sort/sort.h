@@ -9,8 +9,10 @@ extern int *tmp3;
 
 typedef void (*sortfn_t)(void *x, int *o, int N, int K);
 
-void iinsert0_i4(int *x, int *o, int N, int K);
-void iinsert0_i1(uint8_t *x, int *o, int N, int K);
+template <typename T>
+void insert_sort0(T* x, int* o, int N, int);
+
+
 void iinsert2(int *x, int *o, int N, int K);
 void iinsert3(int *x, int *o, int N, int K);
 void iinsert3_i1(uint8_t *x, int *o, int n, int K);
@@ -24,5 +26,9 @@ void radixsort2(int *x, int *o, int n, int K);
 void radixsort2_i1(uint8_t *x, int *o, int n, int K);
 void radixsort3(int *x, int *o, int n, int K);
 void bestsort(int *x, int *o, int N, int K);
+
+extern template void insert_sort0(uint32_t*, int*, int, int);
+extern template void insert_sort0(uint8_t*, int*, int, int);
+
 
 #endif

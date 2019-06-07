@@ -6,40 +6,25 @@
 #include "sort.h"
 
 
-void iinsert0_i4(int* x, int* o, int n, int K) {
-  for (int i = 1; i < n; ++i) {
-    int xi = x[i];
-    int j = i - 1;
+template <typename T>
+void insert_sort0(T* x, int* o, int n, int) {
+  for (int i = 1, j = 0; i < n; ++i) {
+    assert(j == i - 1);
+    T xi = x[i];
     if (xi < x[j]) {
-      int otmp = o[i];
+      int oi = o[i];
       while (j >= 0 && xi < x[j]) {
         x[j+1] = x[j];
         o[j+1] = o[j];
         j--;
       }
       x[j+1] = xi;
-      o[j+1] = otmp;
+      o[j+1] = oi;
     }
+    j = i;
   }
 }
 
-
-void iinsert0_i1(uint8_t* x, int* o, int n, int K) {
-  for (int i = 1; i < n; i++) {
-    uint8_t xtmp = x[i];
-    if (xtmp < x[i-1]) {
-      int j = i - 1;
-      int otmp = o[i];
-      while (j >= 0 && xtmp < x[j]) {
-        x[j+1] = x[j];
-        o[j+1] = o[j];
-        j--;
-      }
-      x[j+1] = xtmp;
-      o[j+1] = otmp;
-    }
-  }
-}
 
 
 // Uses temporary array `tmp1`, which must be at least `n` ints long.
@@ -167,3 +152,7 @@ void iinsert3_i1(uint8_t* x, int* o, int n, int K)
   }
   memcpy(o, t + l, n * sizeof(int));
 }
+
+
+template void insert_sort0(uint32_t*, int*, int, int);
+template void insert_sort0(uint8_t*, int*, int, int);
