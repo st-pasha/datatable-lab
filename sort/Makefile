@@ -4,7 +4,7 @@
 CC ?= gcc
 INCLUDES = -I.
 LIBRARIES =
-CCFLAGS += -std=gnu++11 -stdlib=libc++
+CCFLAGS += -std=gnu++17 -stdlib=libc++
 
 ifeq ($(DEBUG),)
 	CCFLAGS += -O3

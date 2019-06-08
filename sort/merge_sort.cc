@@ -349,3 +349,22 @@ void timsort(int *x, int *o, int n, int K)
   assert(stacklen == 2);
   // printf("  end\n");
 }
+
+
+
+//==============================================================================
+// std::sort
+//==============================================================================
+#include <algorithm>
+
+template <typename T>
+void std_sort(xoitem<T>* xo, int n, int) {
+  std::stable_sort(xo, xo + n,
+                  [=](const xoitem<T>& a, const xoitem<T>& b) {
+                    return a.x < b.x;
+                  });
+}
+
+template void std_sort(xoitem<uint8_t>*, int, int);
+template void std_sort(xoitem<uint32_t>*, int, int);
+template void std_sort(xoitem<uint64_t>*, int, int);

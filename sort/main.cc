@@ -1,4 +1,5 @@
 #include <chrono>
+#include <vector>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,6 +14,14 @@ int *tmp1 = NULL;
 int *tmp2 = NULL;
 int *tmp3 = NULL;
 
+template <int s> struct _elt {};
+template <> struct _elt<8> { using t = uint64_t; };
+template <> struct _elt<4> { using t = uint32_t; };
+template <> struct _elt<2> { using t = uint16_t; };
+template <> struct _elt<1> { using t = uint8_t; };
+template <int s>
+using element_t = typename _elt<s>::t;
+
 
 
 #define addptr(p, s)  ((void*)((char*)(p) + (size_t)(s)))
@@ -22,90 +31,99 @@ int *tmp3 = NULL;
 // K: max number of significant bits in elements x, this cannot exceed S*8
 // B:
 //
-int test(const char* algoname, sortfn_t sortfn, int S, int N, int K, int B, int T)
+template <int S, bool combined=false>
+int test(const char* algoname, sortfn_t sortfn, int N, int K, int B, int T, int seed)
 {
+  using XT = element_t<S>;
   assert(K <= S*8);
-  size_t alloc_size_x = (size_t)N * S;
-  size_t alloc_size_o = (size_t)N * sizeof(int);
-  void* x = malloc(alloc_size_x);  // data to be sorted
-  int*  o = static_cast<int*>(malloc(alloc_size_o));  // ordering, sorted together with the data
-  void* wx = NULL;
-  int*  wo = NULL;
-  if (!x || !o) return 1;
+  assert(sizeof(XT) == S);
+  XT* x = nullptr, *wx = nullptr;
+  int* o = nullptr, *wo = nullptr;
+  xoitem<XT>* xo = nullptr, *wxo = nullptr;
 
-  int niters = 0;
+  if (combined) {
+    xo = new xoitem<XT>[N];
+  } else {
+    x = new XT[N];   // data to be sorted
+    o = new int[N];  // ordering, sorted together with the data
+  }
+
+  size_t niters = 0;
   double* ts = new double[B]();
   double tsum = 0;
   for (int b = 0; b < B; b++) {
     //----- Prepare data array -------------------------
-    srand(time(NULL));
-    if (S == 1) {
-      uint8_t mask = (uint8_t)((1 << K) - 1);
-      uint8_t *xx = (uint8_t*) x;
-      for (int i = 0; i < N; i++) {
-        xx[i] = (uint8_t)(rand() & mask);
-        o[i] = i;
+    srand(seed + b * 101);
+    XT mask = static_cast<XT>((1 << K) - 1);
+    XT* xx = (XT*) x;
+    for (int i = 0; i < N; i++) {
+      XT z = static_cast<XT>(rand() & mask);
+      if constexpr(combined) {
+        xo[i] = {z, i};
+      } else {
+        xx[i] = z;
+        o[i]  = i;
       }
-    } else if (S == 2) {
-      uint16_t mask = (uint16_t)((1 << K) - 1);
-      uint16_t *xx = (uint16_t*) x;
-      for (int i = 0; i < N; i++) {
-        xx[i] = (uint16_t)(rand() & mask);
-        o[i] = i;
-      }
-    } else if (S == 4) {
-      // If K=32, mask should evaluate to 0xFFFFFFFF
-      uint32_t mask = (uint32_t)((1 << K) - 1);
-      uint32_t *xx = (uint32_t*) x;
-      for (int i = 0; i < N; i++) {
-        xx[i] = (uint32_t)(rand() & mask);
-        o[i] = i;
-      }
-    } else assert(0);
+    }
 
     //----- Determine the number of iterations ---------
-    if (niters == 0) {
-      niters = 1;
-      while (1) {
-        wx = (int*)realloc(wx, alloc_size_x * niters);
-        wo = (int*)realloc(wo, alloc_size_o * niters);
-        if (!wx || !wo) return 1;
-        if (N >= 32768) break;  // if N is large enough, use niters = 1
-        for (int i = 0; i < niters; i++) {
-          memcpy(addptr(wx, i * N * S), x, alloc_size_x);
-          memcpy(addptr(wo, i * N * 4), o, alloc_size_o);
+    bool done = (N >= 32768);
+    niters = 1;
+    while (true) {
+      if constexpr(combined) {
+        wxo = new xoitem<XT>[N * niters];
+      } else {
+        wx = new XT[N * niters];
+        wo = new int[N * niters];
+      }
+      for (int i = 0; i < niters; i++) {
+        if constexpr(combined) {
+          memcpy(wxo + i * N, xo, N * sizeof(xoitem<XT>));
+        } else {
+          memcpy(wx + i * N, x, N * sizeof(XT));
+          memcpy(wo + i * N, o, N * sizeof(int));
         }
-        auto t0 = std::chrono::high_resolution_clock::now();
-        for (int i = 0; i < niters; i++) {
-          void* xx = addptr(wx, i * N * S);
-          int*  oo = wo + i * N;
+      }
+      if (done) break;
+      auto t0 = std::chrono::high_resolution_clock::now();
+      for (int i = 0; i < niters; i++) {
+        if constexpr(combined) {
+          xoitem<XT>* xoxo = wxo + i * N;
+          reinterpret_cast<sortfn2_t>(sortfn)(xoxo, N, K);
+        } else {
+          XT*  xx = wx + i * N;
+          int* oo = wo + i * N;
           sortfn(xx, oo, N, K);
         }
-        auto t1 = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> delta = t1 - t0;
-        if (delta > std::chrono::milliseconds(1)) {
-          double time_per_iter = delta.count() / niters;
-          niters = (int)(0.99 + T * 1e-3 / (time_per_iter * B));
-          if (niters < 1) niters = 1;
-          wx = (int*)realloc(wx, alloc_size_x * niters);
-          wo = (int*)realloc(wo, alloc_size_o * niters);
-          if (!wx || !wo) return 1;
-          break;
-        }
+      }
+      auto t1 = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> delta = t1 - t0;
+      if (delta > std::chrono::milliseconds(1)) {
+        double time_per_iter = delta.count() / niters;
+        niters = (int)(0.99 + T * 1e-3 / (time_per_iter * B));
+        if (niters < 1) niters = 1;
+        done = true;
+      } else {
         niters *= 2;
       }
+      delete[] wx;
+      delete[] wo;
+      delete[] wxo;
     }
 
     //----- Run the iterations -------------------------
-    for (int i = 0; i < niters; i++) {
-      memcpy(addptr(wx, i * N * S), x, alloc_size_x);
-      memcpy(addptr(wo, i * N * 4), o, alloc_size_o);
-    }
     auto t0 = std::chrono::high_resolution_clock::now();
-    for (int i = 0; i < niters; i++) {
-      void* xx = addptr(wx, i * N * S);
-      int* oo = wo + i * N;
-      sortfn(xx, oo, N, K);
+    if constexpr(combined) {
+      for (int i = 0; i < niters; i++) {
+        xoitem<XT>* xoxo = wxo + i * N;
+        reinterpret_cast<sortfn2_t>(sortfn)(xoxo, N, K);
+      }
+    } else {
+      for (int i = 0; i < niters; i++) {
+        XT*  xx = wx + i * N;
+        int* oo = wo + i * N;
+        sortfn(xx, oo, N, K);
+      }
     }
     auto t1 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> delta = t1 - t0;
@@ -153,10 +171,12 @@ int test(const char* algoname, sortfn_t sortfn, int S, int N, int K, int B, int 
   }
   printf("[%s]  %.3f ns\n", algoname, tavg * 1e9);
   // printf("Freeing x=%p, o=%p, wx=%p, wo=%p\n", x, o, wx, wo);
-  free(x);
-  free(o);
-  free(wx);
-  free(wo);
+  delete[] x;
+  delete[] o;
+  delete[] xo;
+  delete[] wx;
+  delete[] wo;
+  delete[] wxo;
   delete[] ts;
   return 0;
 }
@@ -164,7 +184,7 @@ int test(const char* algoname, sortfn_t sortfn, int S, int N, int K, int B, int 
 
 
 struct config {
-  int algo;
+  std::vector<int> algos;
   int batches;
   int n;
   int k;
@@ -172,7 +192,6 @@ struct config {
   int : 32;
 
   config() {
-    algo = 1;
     batches = 100;
     n = 64;
     k = 16;
@@ -181,6 +200,8 @@ struct config {
 
   void parse(int argc, char** argv) {
     struct option longopts[] = {
+      // See https://linux.die.net/man/3/getopt_long
+      // {name, has_arg, flag, val}
       {"algo", 1, 0, 0},
       {"batches", 1, 0, 0},
       {"n", 1, 0, 0},
@@ -195,7 +216,7 @@ struct config {
       if (ret == -1) break;
       if (ret == 0) {
         if (optarg) {
-          if (option_index == 0) algo = atol(optarg);
+          if (option_index == 0) algos.push_back(atol(optarg));
           if (option_index == 1) batches = atol(optarg);
           if (option_index == 2) n = atol(optarg);
           if (option_index == 3) k = atol(optarg);
@@ -203,11 +224,11 @@ struct config {
         }
       }
     }
+    if (algos.empty()) algos.push_back(1);
   }
 
   void report() {
     printf("\nInput parameters:\n");
-    printf("  algo    = %d\n", algo);
     printf("  batches = %d\n", batches);
     printf("  n       = %d\n", n);
     printf("  k       = %d\n", k);
@@ -231,16 +252,15 @@ int main(int argc, char** argv) {
   // T - how long (in ms) to run the test for each algo, approximately.
   config cfg;
   cfg.parse(argc, argv);
-  int A = cfg.algo;
   int B = cfg.batches;
   int N = cfg.n;
   int K = cfg.k;
   int T = cfg.time;
-  if (N <= 16 && A == 4) B *= 10;
-  printf("Array size = %d\n", N);
-  printf("N sig bits = %d\n", K);
-  printf("N batches  = %d\n", B);
-  printf("Exec. time = %d ms\n", T);
+  int seed = 1234; //time(NULL);
+  printf("Array size (N) = %d\n", N);
+  printf("N sig bits (K) = %d\n", K);
+  printf("N batches  (B) = %d\n", B);
+  printf("Exec. time (T) = %d ms\n", T);
   printf("\n");
 
   char name[100];
@@ -248,97 +268,106 @@ int main(int argc, char** argv) {
   tmp2 = new int[N];
   tmp3 = new int[1 << K];
 
-  switch (A) {
-    case 1:
-      test("4:insert0", (sortfn_t)insert_sort0<uint32_t>, 4, N, K, B, T);
-      test("4:insert2", (sortfn_t)iinsert2, 4, N, K, B, T);
-      test("4:insert3", (sortfn_t)iinsert3, 4, N, K, B, T);
-      if (K <= 8) {
-        test("1:insert0", (sortfn_t)insert_sort0<uint8_t>, 1, N, K, B, T);
-        test("1:insert3", (sortfn_t)iinsert3_i1, 1, N, K, B, T);
+  for (int A : cfg.algos) {
+    switch (A) {
+      case 1:
+        if (N <= 1024) {
+          test<4>("4:insert0", (sortfn_t)insert_sort0<uint32_t>,  N, K, B, T, seed);
+          test<4, true>("4:insert0c", (sortfn_t)insert_sort0_xo<uint32_t>, N, K, B, T, seed);
+          test<4>("4:insert2", (sortfn_t)iinsert2,  N, K, B, T, seed);
+          test<4>("4:insert3", (sortfn_t)insert_sort3<uint32_t>,  N, K, B, T, seed);
+          if (K <= 8) {
+            test<1>("1:insert0", (sortfn_t)insert_sort0<uint8_t>, N, K, B, T, seed);
+            test<1>("1:insert3", (sortfn_t)insert_sort3<uint8_t>, N, K, B, T, seed);
+          }
+        }
+        break;
+
+      case 2:
+        test<4>("mergeTD", (sortfn_t)mergesort0, N, K, B, T, seed);
+        test<4>("mergeBU", (sortfn_t)mergesort1, N, K, B, T, seed);
+        test<4>("timsort", (sortfn_t)timsort, N, K, B, T, seed);
+        test<4, true>("stdsort", (sortfn_t)std_sort<uint32_t>, N, K, B, T, seed);
+        break;
+
+      case 3: {
+        if (K <= 20) {
+          sprintf(name, "radix0-r%d", K);
+          test<4>(name, (sortfn_t)radixsort0, N, K, B, T, seed);
+        }
+        int kstep = K <= 4? 1 : K <= 8? 2 : 4;
+        kstep = 8;
+        for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
+          if (tmp0 > 20) break;
+          sprintf(name, "radix1-%d/m", tmp0);
+          test<4>(name, (sortfn_t)radixsort1, N, K, B, T, seed);
+          sprintf(name, "radix2-%d/%d", tmp0, K - tmp0);
+          test<4>(name, (sortfn_t)radixsort2, N, K, B, T, seed);
+          if (K - tmp0 <= 16) {
+            sprintf(name, "radix3-%d/%d", tmp0, K - tmp0);
+            test<4>(name, (sortfn_t)radixsort3, N, K, B, T, seed);
+          }
+        }
       }
       break;
 
-    case 2:
-      test("mergeTD", (sortfn_t)mergesort0, 4, N, K, B, T);
-      test("mergeBU", (sortfn_t)mergesort1, 4, N, K, B, T);
-      test("timsort", (sortfn_t)timsort, 4, N, K, B, T);
+      case 4: {
+        if (N <= 10000) {
+          test<4>("4:insert0", (sortfn_t)insert_sort0<uint32_t>, N, K, B, T, seed);
+        } else {
+          printf("@4:insert0: -\n");
+        }
+        if (N <= 1e6) {
+          test<4>("mergeBU", (sortfn_t)mergesort1, N, K, B, T, seed);
+        } else {
+          printf("@mergeBU: -\n");
+        }
+        int kstep = K <= 4? 1 : K <= 8? 2 : 4;
+        for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
+          if (K - tmp0 > 20) continue;
+          if (tmp0 > 20) continue;
+          sprintf(name, "radix1-%d/m", tmp0);
+          test<4>(name, (sortfn_t)radixsort1, N, K, B, T, seed);
+          sprintf(name, "radix2-%d/%d", tmp0, K - tmp0);
+          test<4>(name, (sortfn_t)radixsort2, N, K, B, T, seed);
+          if (K - tmp0 <= 16) {
+            sprintf(name, "radix3-%d/%d", tmp0, K - tmp0);
+            test<4>(name, (sortfn_t)radixsort3, N, K, B, T, seed);
+          }
+        }
+        if (K <= 20) {
+          sprintf(name, "radix%d", K);
+          test<4>(name, (sortfn_t)radixsort0, N, K, B, T, seed);
+        }
+      }
       break;
 
-    case 3: {
-      if (K <= 20) {
-        sprintf(name, "radix0-r%d", K);
-        test(name, (sortfn_t)radixsort0, 4, N, K, B, T);
-      }
-      int kstep = K <= 4? 1 : K <= 8? 2 : 4;
-      kstep = 8;
-      for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
-        if (tmp0 > 20) break;
-        sprintf(name, "radix1-%d/m", tmp0);
-        test(name, (sortfn_t)radixsort1, 4, N, K, B, T);
-        sprintf(name, "radix2-%d/%d", tmp0, K - tmp0);
-        test(name, (sortfn_t)radixsort2, 4, N, K, B, T);
-        if (K - tmp0 <= 16) {
-          sprintf(name, "radix3-%d/%d", tmp0, K - tmp0);
-          test(name, (sortfn_t)radixsort3, 4, N, K, B, T);
+      case 5: {
+        if (K > 8) {
+          printf("This case is only available for K <= 8");
+          return 5;
+        }
+        if (N <= 10000) {
+          test<1>("1:insert0", (sortfn_t)insert_sort0<uint8_t>, N, K, B, T, seed);
+          test<1>("1:insert3", (sortfn_t)insert_sort3<uint8_t>, N, K, B, T, seed);
+        } else {
+          printf("@1:insert0: -\n");
+          printf("@1:insert3: -\n");
+        }
+        sprintf(name, "radix0-%d", K);
+        test<1>(name, (sortfn_t)radixsort0_i1, N, K, B, T, seed);
+        int kstep = K <= 4? 1 : K <= 8? 2 : 4;
+        for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
+          if (K - tmp0 > 20) continue;
+          if (tmp0 > 20) continue;
+          sprintf(name, "radix2-%d/o", tmp0);
+          test<1>(name, (sortfn_t)radixsort2_i1, N, K, B, T, seed);
         }
       }
-    }
-    break;
 
-    case 4: {
-      if (N <= 10000) {
-        test("4:insert0", (sortfn_t)insert_sort0<uint32_t>, 4, N, K, B, T);
-      } else {
-        printf("@4:insert0: -\n");
-      }
-      if (N <= 1e6) test("mergeBU", (sortfn_t)mergesort1, 4, N, K, B, T);
-      else printf("@mergeBU: -\n");
-      int kstep = K <= 4? 1 : K <= 8? 2 : 4;
-      for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
-        if (K - tmp0 > 20) continue;
-        if (tmp0 > 20) continue;
-        sprintf(name, "radix1-%d/m", tmp0);
-        test(name, (sortfn_t)radixsort1, 4, N, K, B, T);
-        sprintf(name, "radix2-%d/%d", tmp0, K - tmp0);
-        test(name, (sortfn_t)radixsort2, 4, N, K, B, T);
-        if (K - tmp0 <= 16) {
-          sprintf(name, "radix3-%d/%d", tmp0, K - tmp0);
-          test(name, (sortfn_t)radixsort3, 4, N, K, B, T);
-        }
-      }
-      if (K <= 20) {
-        sprintf(name, "radix%d", K);
-        test(name, (sortfn_t)radixsort0, 4, N, K, B, T);
-      }
+      default:
+        printf("A = %d is not supported\n", A);
     }
-    break;
-
-    case 5: {
-      if (K > 8) {
-        printf("This case is only available for K <= 8");
-        return 5;
-      }
-      if (N <= 10000) {
-        test("1:insert0", (sortfn_t)insert_sort0<uint8_t>, 1, N, K, B, T);
-        test("1:insert3", (sortfn_t)iinsert3_i1, 1, N, K, B, T);
-      } else {
-        printf("@1:insert0: -\n");
-        printf("@1:insert3: -\n");
-      }
-      sprintf(name, "radix0-%d", K);
-      test(name, (sortfn_t)radixsort0_i1, 1, N, K, B, T);
-      int kstep = K <= 4? 1 : K <= 8? 2 : 4;
-      for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
-        if (K - tmp0 > 20) continue;
-        if (tmp0 > 20) continue;
-        sprintf(name, "radix2-%d/o", tmp0);
-        test(name, (sortfn_t)radixsort2_i1, 1, N, K, B, T);
-      }
-    }
-
-    default:
-      printf("A = %d is not supported\n", A);
   }
 
   // printf("Freeing tmp1=%p, tmp2=%p, tmp3=%p\n", tmp1, tmp2, tmp3);
