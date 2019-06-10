@@ -49,11 +49,12 @@ void insert_sort0_xo(xoitem<T>* xo, int n, int) {
 
 
 // Uses temporary array `tmp1`, which must be at least `n` ints long.
-void iinsert2(int* x, int* o, int n, int K) {
+template <typename T>
+void insert_sort2(T* x, int* o, int n, int K) {
   int* t = tmp1;
   t[0] = 0;
   for (int i = 1; i < n; i++) {
-    int xi = x[i];
+    T xi = x[i];
     int j = i;
     while (j && xi < x[t[j - 1]]) {
       t[j] = t[j - 1];
@@ -126,8 +127,10 @@ void insert_sort3(T* x, int* o, int n, int)
 
 
 template void insert_sort0(uint8_t*,  int*, int, int);
+template void insert_sort0(uint16_t*, int*, int, int);
 template void insert_sort0(uint32_t*, int*, int, int);
 template void insert_sort0(uint64_t*, int*, int, int);
+template void insert_sort2(uint32_t*, int*, int, int);
 template void insert_sort3(uint8_t*,  int*, int, int);
 template void insert_sort3(uint32_t*, int*, int, int);
 template void insert_sort3(uint64_t*, int*, int, int);

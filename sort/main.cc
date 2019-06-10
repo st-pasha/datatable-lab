@@ -274,7 +274,7 @@ int main(int argc, char** argv) {
         if (N <= 1024) {
           test<4>("4:insert0", (sortfn_t)insert_sort0<uint32_t>,  N, K, B, T, seed);
           test<4, true>("4:insert0c", (sortfn_t)insert_sort0_xo<uint32_t>, N, K, B, T, seed);
-          test<4>("4:insert2", (sortfn_t)iinsert2,  N, K, B, T, seed);
+          test<4>("4:insert2", (sortfn_t)insert_sort2<uint32_t>,  N, K, B, T, seed);
           test<4>("4:insert3", (sortfn_t)insert_sort3<uint32_t>,  N, K, B, T, seed);
           if (K <= 8) {
             test<1>("1:insert0", (sortfn_t)insert_sort0<uint8_t>, N, K, B, T, seed);
@@ -293,19 +293,19 @@ int main(int argc, char** argv) {
       case 3: {
         if (K <= 20) {
           sprintf(name, "radix0-r%d", K);
-          test<4>(name, (sortfn_t)radixsort0, N, K, B, T, seed);
+          test<4>(name, (sortfn_t)count_sort0<uint32_t>, N, K, B, T, seed);
         }
         int kstep = K <= 4? 1 : K <= 8? 2 : 4;
         kstep = 8;
         for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
           if (tmp0 > 20) break;
-          sprintf(name, "radix1-%d/m", tmp0);
-          test<4>(name, (sortfn_t)radixsort1, N, K, B, T, seed);
+          sprintf(name, "radix1-%d/b", tmp0);
+          test<4>(name, (sortfn_t)radix_sort1<uint32_t>, N, K, B, T, seed);
           sprintf(name, "radix2-%d/%d", tmp0, K - tmp0);
-          test<4>(name, (sortfn_t)radixsort2, N, K, B, T, seed);
+          test<4>(name, (sortfn_t)radix_sort2<uint32_t>, N, K, B, T, seed);
           if (K - tmp0 <= 16) {
-            sprintf(name, "radix3-%d/%d", tmp0, K - tmp0);
-            test<4>(name, (sortfn_t)radixsort3, N, K, B, T, seed);
+            sprintf(name, "radix3-%d/b", tmp0);
+            test<4>(name, (sortfn_t)radix_sort3<uint32_t>, N, K, B, T, seed);
           }
         }
       }
@@ -315,29 +315,29 @@ int main(int argc, char** argv) {
         if (N <= 10000) {
           test<4>("4:insert0", (sortfn_t)insert_sort0<uint32_t>, N, K, B, T, seed);
         } else {
-          printf("@4:insert0: -\n");
+          printf("[4:insert0] -\n");
         }
         if (N <= 1e6) {
           test<4>("mergeBU", (sortfn_t)mergesort1, N, K, B, T, seed);
         } else {
-          printf("@mergeBU: -\n");
+          printf("[mergeBU] -\n");
         }
         int kstep = K <= 4? 1 : K <= 8? 2 : 4;
         for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
           if (K - tmp0 > 20) continue;
           if (tmp0 > 20) continue;
           sprintf(name, "radix1-%d/m", tmp0);
-          test<4>(name, (sortfn_t)radixsort1, N, K, B, T, seed);
+          test<4>(name, (sortfn_t)radix_sort1<uint32_t>, N, K, B, T, seed);
           sprintf(name, "radix2-%d/%d", tmp0, K - tmp0);
-          test<4>(name, (sortfn_t)radixsort2, N, K, B, T, seed);
+          test<4>(name, (sortfn_t)radix_sort2<uint32_t>, N, K, B, T, seed);
           if (K - tmp0 <= 16) {
-            sprintf(name, "radix3-%d/%d", tmp0, K - tmp0);
-            test<4>(name, (sortfn_t)radixsort3, N, K, B, T, seed);
+            sprintf(name, "radix3-%d/b", tmp0);
+            test<4>(name, (sortfn_t)radix_sort3<uint32_t>, N, K, B, T, seed);
           }
         }
         if (K <= 20) {
           sprintf(name, "radix%d", K);
-          test<4>(name, (sortfn_t)radixsort0, N, K, B, T, seed);
+          test<4>(name, (sortfn_t)count_sort0<uint32_t>, N, K, B, T, seed);
         }
       }
       break;
@@ -355,13 +355,13 @@ int main(int argc, char** argv) {
           printf("@1:insert3: -\n");
         }
         sprintf(name, "radix0-%d", K);
-        test<1>(name, (sortfn_t)radixsort0_i1, N, K, B, T, seed);
+        test<1>(name, (sortfn_t)count_sort0<uint8_t>, N, K, B, T, seed);
         int kstep = K <= 4? 1 : K <= 8? 2 : 4;
         for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
           if (K - tmp0 > 20) continue;
           if (tmp0 > 20) continue;
           sprintf(name, "radix2-%d/o", tmp0);
-          test<1>(name, (sortfn_t)radixsort2_i1, N, K, B, T, seed);
+          test<1>(name, (sortfn_t)radix_sort2<uint8_t>, N, K, B, T, seed);
         }
       }
 
