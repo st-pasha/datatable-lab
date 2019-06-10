@@ -24,8 +24,6 @@ using element_t = typename _elt<s>::t;
 
 
 
-#define addptr(p, s)  ((void*)((char*)(p) + (size_t)(s)))
-
 // S: element size of x
 // N: number of items in array x (i.e. number of items to be sorted)
 // K: max number of significant bits in elements x, this cannot exceed S*8
@@ -189,13 +187,14 @@ struct config {
   int n;
   int k;
   int time;
-  int : 32;
+  int intsize;
 
   config() {
     batches = 100;
     n = 64;
     k = 16;
     time = 1000;
+    intsize = 4;
   }
 
   void parse(int argc, char** argv) {
@@ -207,6 +206,7 @@ struct config {
       {"n", 1, 0, 0},
       {"k", 1, 0, 0},
       {"time", 1, 0, 0},
+      {"intsize", 1, 0, 0},
       {nullptr, 0, nullptr, 0}  // sentinel
     };
 
@@ -221,6 +221,7 @@ struct config {
           if (option_index == 2) n = atol(optarg);
           if (option_index == 3) k = atol(optarg);
           if (option_index == 4) time = atol(optarg);
+          if (option_index == 5) intsize = atol(optarg);
         }
       }
     }
@@ -233,6 +234,7 @@ struct config {
     printf("  n       = %d\n", n);
     printf("  k       = %d\n", k);
     printf("  time    = %d\n", time);
+    printf("  intsize = %d\n", intsize);
     printf("\n");
   }
 };
@@ -242,8 +244,7 @@ struct config {
 
 
 int main(int argc, char** argv) {
-  // A - which set of algorithms to run: 1 (insert sorts), 2 (merge sorts),
-  //     3 (radix sort), 4 (combo)
+  // A - which algo to run (1-11):
   // B - number of batches, i.e. how many different datasets to try. Default
   //     is 100.
   // K - number of significant bits, i.e. each dataset will be comprised of
@@ -256,12 +257,22 @@ int main(int argc, char** argv) {
   int N = cfg.n;
   int K = cfg.k;
   int T = cfg.time;
+  int S = cfg.intsize;
   int seed = 1234; //time(NULL);
   printf("Array size (N) = %d\n", N);
   printf("N sig bits (K) = %d\n", K);
   printf("N batches  (B) = %d\n", B);
   printf("Exec. time (T) = %d ms\n", T);
+  printf("Elem. size (S) = %d\n", S);
   printf("\n");
+  if (S != 1 && S != 2 && S != 4 && S == 8) {
+    printf("Unsupported integer size\n");
+    exit(0);
+  }
+  if (S * 8 < K) {
+    printf("Number of bits %d cannot exceed integer size %d\n", K, S*8);
+    exit(0);
+  }
 
   char name[100];
   tmp1 = new int[2*N];
@@ -272,29 +283,63 @@ int main(int argc, char** argv) {
     switch (A) {
       case 1:
         if (N <= 1024) {
-          test<4>("4:insert0", (sortfn_t)insert_sort0<uint32_t>,  N, K, B, T, seed);
-          test<4, true>("4:insert0c", (sortfn_t)insert_sort0_xo<uint32_t>, N, K, B, T, seed);
-          test<4>("4:insert2", (sortfn_t)insert_sort2<uint32_t>,  N, K, B, T, seed);
-          test<4>("4:insert3", (sortfn_t)insert_sort3<uint32_t>,  N, K, B, T, seed);
-          if (K <= 8) {
-            test<1>("1:insert0", (sortfn_t)insert_sort0<uint8_t>, N, K, B, T, seed);
-            test<1>("1:insert3", (sortfn_t)insert_sort3<uint8_t>, N, K, B, T, seed);
-          }
+          if (S == 1) test<1>("1:insert0", (sortfn_t)insert_sort0<uint8_t>,  N, K, B, T, seed);
+          if (S == 2) test<2>("2:insert0", (sortfn_t)insert_sort0<uint16_t>, N, K, B, T, seed);
+          if (S == 4) test<4>("4:insert0", (sortfn_t)insert_sort0<uint32_t>, N, K, B, T, seed);
+          if (S == 8) test<8>("8:insert0", (sortfn_t)insert_sort0<uint64_t>, N, K, B, T, seed);
         }
         break;
 
       case 2:
-        test<4>("mergeTD", (sortfn_t)mergesort0, N, K, B, T, seed);
-        test<4>("mergeBU", (sortfn_t)mergesort1, N, K, B, T, seed);
-        test<4>("timsort", (sortfn_t)timsort, N, K, B, T, seed);
-        test<4, true>("stdsort", (sortfn_t)std_sort<uint32_t>, N, K, B, T, seed);
+        if (N <= 1024) {
+          if (S == 1) test<1>("1:insert2", (sortfn_t)insert_sort2<uint8_t>,  N, K, B, T, seed);
+          if (S == 2) test<2>("2:insert2", (sortfn_t)insert_sort2<uint16_t>, N, K, B, T, seed);
+          if (S == 4) test<4>("4:insert2", (sortfn_t)insert_sort2<uint32_t>, N, K, B, T, seed);
+          if (S == 8) test<8>("8:insert2", (sortfn_t)insert_sort2<uint64_t>, N, K, B, T, seed);
+        }
         break;
 
-      case 3: {
-        if (K <= 20) {
-          sprintf(name, "radix0-r%d", K);
-          test<4>(name, (sortfn_t)count_sort0<uint32_t>, N, K, B, T, seed);
+      case 3:
+        if (N <= 1024) {
+          if (S == 1) test<1>("1:insert3", (sortfn_t)insert_sort3<uint8_t>,  N, K, B, T, seed);
+          if (S == 2) test<2>("2:insert3", (sortfn_t)insert_sort3<uint16_t>, N, K, B, T, seed);
+          if (S == 4) test<4>("4:insert3", (sortfn_t)insert_sort3<uint32_t>, N, K, B, T, seed);
+          if (S == 8) test<8>("8:insert3", (sortfn_t)insert_sort3<uint64_t>, N, K, B, T, seed);
         }
+        break;
+
+      case 4:
+        test<4>("mergeTD", (sortfn_t)mergesort0, N, K, B, T, seed);
+        break;
+
+      case 5:
+        if (N <= 1000000) {
+          test<4>("mergeBU", (sortfn_t)mergesort1, N, K, B, T, seed);
+        }
+        break;
+
+      case 6:
+        test<4>("timsort", (sortfn_t)timsort, N, K, B, T, seed);
+        break;
+
+      case 7:
+        if (S == 1) test<1, true>("1:stdsort", (sortfn_t)std_sort<uint8_t>,  N, K, B, T, seed);
+        if (S == 2) test<2, true>("2:stdsort", (sortfn_t)std_sort<uint16_t>, N, K, B, T, seed);
+        if (S == 4) test<4, true>("4:stdsort", (sortfn_t)std_sort<uint32_t>, N, K, B, T, seed);
+        if (S == 8) test<8, true>("8:stdsort", (sortfn_t)std_sort<uint64_t>, N, K, B, T, seed);
+        break;
+
+      case 8:
+        if (K <= 20) {
+          sprintf(name, "%d:count-%d", S, K);
+          if (S == 1) test<1>(name, (sortfn_t)count_sort0<uint8_t>, N, K, B, T, seed);
+          if (S == 2) test<2>(name, (sortfn_t)count_sort0<uint16_t>, N, K, B, T, seed);
+          if (S == 4) test<4>(name, (sortfn_t)count_sort0<uint32_t>, N, K, B, T, seed);
+          if (S == 8) test<8>(name, (sortfn_t)count_sort0<uint64_t>, N, K, B, T, seed);
+        }
+        break;
+
+      case 9: {
         int kstep = K <= 4? 1 : K <= 8? 2 : 4;
         kstep = 8;
         for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
@@ -311,17 +356,7 @@ int main(int argc, char** argv) {
       }
       break;
 
-      case 4: {
-        if (N <= 10000) {
-          test<4>("4:insert0", (sortfn_t)insert_sort0<uint32_t>, N, K, B, T, seed);
-        } else {
-          printf("[4:insert0] -\n");
-        }
-        if (N <= 1e6) {
-          test<4>("mergeBU", (sortfn_t)mergesort1, N, K, B, T, seed);
-        } else {
-          printf("[mergeBU] -\n");
-        }
+      case 10: {
         int kstep = K <= 4? 1 : K <= 8? 2 : 4;
         for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
           if (K - tmp0 > 20) continue;
@@ -342,28 +377,17 @@ int main(int argc, char** argv) {
       }
       break;
 
-      case 5: {
-        if (K > 8) {
-          printf("This case is only available for K <= 8");
-          return 5;
+      case 11:
+        if (K <= 8) {
+          int kstep = K <= 4? 1 : K <= 8? 2 : 4;
+          for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
+            if (K - tmp0 > 20) continue;
+            if (tmp0 > 20) continue;
+            sprintf(name, "radix2-%d/o", tmp0);
+            test<1>(name, (sortfn_t)radix_sort2<uint8_t>, N, K, B, T, seed);
+          }
         }
-        if (N <= 10000) {
-          test<1>("1:insert0", (sortfn_t)insert_sort0<uint8_t>, N, K, B, T, seed);
-          test<1>("1:insert3", (sortfn_t)insert_sort3<uint8_t>, N, K, B, T, seed);
-        } else {
-          printf("@1:insert0: -\n");
-          printf("@1:insert3: -\n");
-        }
-        sprintf(name, "radix0-%d", K);
-        test<1>(name, (sortfn_t)count_sort0<uint8_t>, N, K, B, T, seed);
-        int kstep = K <= 4? 1 : K <= 8? 2 : 4;
-        for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
-          if (K - tmp0 > 20) continue;
-          if (tmp0 > 20) continue;
-          sprintf(name, "radix2-%d/o", tmp0);
-          test<1>(name, (sortfn_t)radix_sort2<uint8_t>, N, K, B, T, seed);
-        }
-      }
+        break;
 
       default:
         printf("A = %d is not supported\n", A);

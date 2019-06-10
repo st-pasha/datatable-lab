@@ -10,7 +10,7 @@ def get_cmd(n):
     return [c.replace("{N}", str(n)).replace("--n={N}", "--n=" + str(n))
             for c in sys.argv[1:]]
 
-if __name__ == "__main__":
+try:
     if len(sys.argv) > 2 and ("{N}" in sys.argv or "--n={N}" in sys.argv):
         print("Command example: %s" % " ".join(get_cmd(42)))
     else:
@@ -39,7 +39,7 @@ if __name__ == "__main__":
         headers = []
         values = []
         for line in out.split("\n"):
-            mm = re.search(r"^\[\s*([\w\-/:]+)\]\s*([\d\.\-]+)", line)
+            mm = re.search(r"^\[\s*([\w\-/:]+)\]\s*([\d\.]+)", line)
             if mm:
                 name = mm.group(1)
                 value = mm.group(2)
@@ -48,7 +48,7 @@ if __name__ == "__main__":
                     values.append(None)
                 else:
                     v = float(value)
-                    values.append(int(v + 0.5))
+                    values.append(int(v*10 + 0.5)/10)
         if headers_printed:
             if headers != headers_printed:
                 values = [values[headers.index(h)] if h in headers else None
@@ -69,8 +69,9 @@ if __name__ == "__main__":
                 print("|" + " " * 14, end="")
             elif v <= minval * 1.25:
                 # highlight green values not too far away from min
-                print("|" + colorama.Fore.GREEN + (" %12s " % v) +
-                      colorama.Style.RESET_ALL, end="")
+                print("|\x1B[32m %12s \x1B[m" % v, end="")
             else:
-                print("| %12d " % v, end="")
+                print("| %12s " % v, end="")
         print()
+except KeyboardInterrupt:
+    print("\r\x1B[33m-- Stopped.\x1B[m")

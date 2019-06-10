@@ -366,5 +366,6 @@ void std_sort(xoitem<T>* xo, int n, int) {
 }
 
 template void std_sort(xoitem<uint8_t>*, int, int);
+template void std_sort(xoitem<uint16_t>*, int, int);
 template void std_sort(xoitem<uint32_t>*, int, int);
 template void std_sort(xoitem<uint64_t>*, int, int);

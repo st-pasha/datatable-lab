@@ -130,9 +130,16 @@ template void insert_sort0(uint8_t*,  int*, int, int);
 template void insert_sort0(uint16_t*, int*, int, int);
 template void insert_sort0(uint32_t*, int*, int, int);
 template void insert_sort0(uint64_t*, int*, int, int);
+
+template void insert_sort2(uint8_t*,  int*, int, int);
+template void insert_sort2(uint16_t*, int*, int, int);
 template void insert_sort2(uint32_t*, int*, int, int);
+template void insert_sort2(uint64_t*, int*, int, int);
+
 template void insert_sort3(uint8_t*,  int*, int, int);
+template void insert_sort3(uint16_t*, int*, int, int);
 template void insert_sort3(uint32_t*, int*, int, int);
 template void insert_sort3(uint64_t*, int*, int, int);
+
 template void insert_sort0_xo(xoitem<uint32_t>*, int, int);
 template void insert_sort0_xo(xoitem<uint8_t>*, int, int);
