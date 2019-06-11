@@ -309,7 +309,34 @@ int main(int argc, char** argv) {
         break;
 
       case 4:
-        test<4>("mergeTD", (sortfn_t)mergesort0, N, K, B, T, seed);
+        if (S == 1) {
+          test<1>("1:mergeTD#8",  (sortfn_t)merge_sort0<uint8_t, 8>,  N, K, B, T, seed);
+          test<1>("1:mergeTD#12", (sortfn_t)merge_sort0<uint8_t, 12>, N, K, B, T, seed);
+          test<1>("1:mergeTD#16", (sortfn_t)merge_sort0<uint8_t, 16>, N, K, B, T, seed);
+          test<1>("1:mergeTD#20", (sortfn_t)merge_sort0<uint8_t, 20>, N, K, B, T, seed);
+          test<1>("1:mergeTD#24", (sortfn_t)merge_sort0<uint8_t, 24>, N, K, B, T, seed);
+        }
+        if (S == 2) {
+          test<2>("2:mergeTD#8",  (sortfn_t)merge_sort0<uint16_t, 8>,  N, K, B, T, seed);
+          test<2>("2:mergeTD#12", (sortfn_t)merge_sort0<uint16_t, 12>, N, K, B, T, seed);
+          test<2>("2:mergeTD#16", (sortfn_t)merge_sort0<uint16_t, 16>, N, K, B, T, seed);
+          test<2>("2:mergeTD#20", (sortfn_t)merge_sort0<uint16_t, 20>, N, K, B, T, seed);
+          test<2>("2:mergeTD#24", (sortfn_t)merge_sort0<uint16_t, 24>, N, K, B, T, seed);
+        }
+        if (S == 4) {
+          test<4>("4:mergeTD#8",  (sortfn_t)merge_sort0<uint32_t, 8>,  N, K, B, T, seed);
+          test<4>("4:mergeTD#12", (sortfn_t)merge_sort0<uint32_t, 12>, N, K, B, T, seed);
+          test<4>("4:mergeTD#16", (sortfn_t)merge_sort0<uint32_t, 16>, N, K, B, T, seed);
+          test<4>("4:mergeTD#20", (sortfn_t)merge_sort0<uint32_t, 20>, N, K, B, T, seed);
+          test<4>("4:mergeTD#24", (sortfn_t)merge_sort0<uint32_t, 24>, N, K, B, T, seed);
+        }
+        if (S == 8) {
+          test<8>("8:mergeTD#8",  (sortfn_t)merge_sort0<uint64_t, 8>,  N, K, B, T, seed);
+          test<8>("8:mergeTD#12", (sortfn_t)merge_sort0<uint64_t, 12>, N, K, B, T, seed);
+          test<8>("8:mergeTD#16", (sortfn_t)merge_sort0<uint64_t, 16>, N, K, B, T, seed);
+          test<8>("8:mergeTD#20", (sortfn_t)merge_sort0<uint64_t, 20>, N, K, B, T, seed);
+          test<8>("8:mergeTD#24", (sortfn_t)merge_sort0<uint64_t, 24>, N, K, B, T, seed);
+        }
         break;
 
       case 5:
@@ -341,54 +368,31 @@ int main(int argc, char** argv) {
 
       case 9: {
         int kstep = K <= 4? 1 : K <= 8? 2 : 4;
-        kstep = 8;
-        for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
-          if (tmp0 > 20) break;
-          sprintf(name, "radix1-%d/b", tmp0);
-          test<4>(name, (sortfn_t)radix_sort1<uint32_t>, N, K, B, T, seed);
-          sprintf(name, "radix2-%d/%d", tmp0, K - tmp0);
-          test<4>(name, (sortfn_t)radix_sort2<uint32_t>, N, K, B, T, seed);
-          if (K - tmp0 <= 16) {
-            sprintf(name, "radix3-%d/b", tmp0);
-            test<4>(name, (sortfn_t)radix_sort3<uint32_t>, N, K, B, T, seed);
-          }
+        for (int k = kstep; k < K; k += kstep) {
+          if (k > 20) continue;
+          tmp0 = k;
+          sprintf(name, "radix1-%d", k);
+          if (S == 1) test<1>(name, (sortfn_t)radix_sort1<uint8_t>,  N, K, B, T, seed);
+          if (S == 2) test<2>(name, (sortfn_t)radix_sort1<uint16_t>, N, K, B, T, seed);
+          if (S == 4) test<4>(name, (sortfn_t)radix_sort1<uint32_t>, N, K, B, T, seed);
+          if (S == 8) test<8>(name, (sortfn_t)radix_sort1<uint64_t>, N, K, B, T, seed);
         }
       }
       break;
 
       case 10: {
         int kstep = K <= 4? 1 : K <= 8? 2 : 4;
-        for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
-          if (K - tmp0 > 20) continue;
-          if (tmp0 > 20) continue;
-          sprintf(name, "radix1-%d/m", tmp0);
-          test<4>(name, (sortfn_t)radix_sort1<uint32_t>, N, K, B, T, seed);
-          sprintf(name, "radix2-%d/%d", tmp0, K - tmp0);
-          test<4>(name, (sortfn_t)radix_sort2<uint32_t>, N, K, B, T, seed);
-          if (K - tmp0 <= 16) {
-            sprintf(name, "radix3-%d/b", tmp0);
-            test<4>(name, (sortfn_t)radix_sort3<uint32_t>, N, K, B, T, seed);
-          }
-        }
-        if (K <= 20) {
-          sprintf(name, "radix%d", K);
-          test<4>(name, (sortfn_t)count_sort0<uint32_t>, N, K, B, T, seed);
+        for (int k = kstep; k < K; k += kstep) {
+          if (k > 20) continue;
+          sprintf(name, "radix3-%d", k);
+          tmp0 = k;
+          if (S == 1) test<1>(name, (sortfn_t)radix_sort3<uint8_t>,  N, K, B, T, seed);
+          if (S == 2) test<2>(name, (sortfn_t)radix_sort3<uint16_t>, N, K, B, T, seed);
+          if (S == 4) test<4>(name, (sortfn_t)radix_sort3<uint32_t>, N, K, B, T, seed);
+          if (S == 8) test<8>(name, (sortfn_t)radix_sort3<uint64_t>, N, K, B, T, seed);
         }
       }
       break;
-
-      case 11:
-        if (K <= 8) {
-          int kstep = K <= 4? 1 : K <= 8? 2 : 4;
-          for (tmp0 = kstep; tmp0 < K; tmp0 += kstep) {
-            if (K - tmp0 > 20) continue;
-            if (tmp0 > 20) continue;
-            sprintf(name, "radix2-%d/o", tmp0);
-            test<1>(name, (sortfn_t)radix_sort2<uint8_t>, N, K, B, T, seed);
-          }
-        }
-        break;
-
       default:
         printf("A = %d is not supported\n", A);
     }

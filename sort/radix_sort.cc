@@ -64,14 +64,56 @@ template void count_sort0(uint64_t*, int*, int, int);
 template <typename T>
 static void bestsort(T* x, int* o, int N, int K)
 {
-  static int INSERT_THRESHOLDS[] = {0, 8, 8, 8, 8, 12, 16, 16, 20, 20,
-                                    20, 20, 20, 20, 20, 20, 20};
+  static int INSERT_THRESHOLDS[] = {0,
+    12,  // k = 1
+    12,  // k = 2
+    12,  // k = 3
+    12,  // k = 4
+    15,  // k = 5
+    19,  // k = 6
+    19,  // k = 7
+    20,  // k = 8
+    20, 20, 20, 20, 20, 20, 20, 20};
   if (N <= INSERT_THRESHOLDS[K]) {
     insert_sort0<T>(x, o, N, K);
   } else {
     count_sort0<T>(x, o, N, K);
   }
 }
+
+template <typename T, int W>
+static void bestsort0(T* x, int* o, int n, int K) {
+  return n <= W ? insert_sort0<T>(x, o, n, K)
+                : count_sort0<T>(x, o, n, K);
+}
+
+template <typename T, int W1, int W2>
+static void bestsort1(T* x, int* o, int n, int K) {
+  return n <= W1 ? insert_sort0<T>(x, o, n, K) :
+         n <= W2 ? mergesort0_impl<T>(x, o, n, (T*)tmp1, tmp2, 20)
+                 : count_sort0<T>(x, o, n, K);
+}
+
+using sortfn_u32_t = void(*)(uint32_t*, int*, int, int);
+static sortfn_u32_t best_sorts_u32[] = {
+  /* k =  0 */ nullptr,
+  /* k =  1 */ bestsort0<uint32_t, 12>,
+  /* k =  2 */ bestsort0<uint32_t, 12>,
+  /* k =  3 */ bestsort0<uint32_t, 12>,
+  /* k =  4 */ bestsort0<uint32_t, 12>,
+  /* k =  5 */ bestsort0<uint32_t, 14>,
+  /* k =  6 */ bestsort0<uint32_t, 19>,
+  /* k =  7 */ bestsort0<uint32_t, 26>,
+  /* k =  8 */ bestsort0<uint32_t, 28>,
+  /* k =  9 */ bestsort1<uint32_t, 24, 48>,
+  /* k = 10 */ bestsort1<uint32_t, 24, 72>,
+  /* k = 11 */ bestsort1<uint32_t, 24, 72>, // tmp
+  /* k = 12 */ bestsort1<uint32_t, 24, 72>, // tmp
+  /* k = 13 */ bestsort1<uint32_t, 24, 72>, // tmp
+  /* k = 14 */ bestsort1<uint32_t, 24, 72>, // tmp
+  /* k = 15 */ bestsort1<uint32_t, 24, 72>, // tmp
+  /* k = 16 */ bestsort1<uint32_t, 24, 72>, // tmp
+};
 
 
 template <typename TI, typename TO>
@@ -98,14 +140,18 @@ static void radix_recurse(TI* x, int* o, int* histogram, int n,
     if (nextn <= 1) continue;
     TO*  nextx = xx + start;
     int* nexto = oo + start;
-    bestsort<TO>(nextx, nexto, nextn, shift);
+    if constexpr(std::is_same<TO, uint32_t>::value) {
+      best_sorts_u32[shift](nextx, nexto, nextn, shift);
+    } else {
+      bestsort<TO>(nextx, nexto, nextn, shift);
+    }
   }
   tmp1 = (int*)xx;
   tmp2 = oo;
 }
 
 
-// Radix Sort that first partially sorts by `tmp0` MSB bits, and then sorts
+// Radix Sort that first partially sorts by `k = tmp0` MSB bits, and then sorts
 // the remaining numbers using "best" sort.
 // Uses:
 //   tmp1 - array of the same size as x (i.e. n*sizeof(T))
@@ -145,84 +191,9 @@ void radix_sort1(T* x, int* o, int n, int K)
 }
 
 template void radix_sort1(uint8_t*,  int*, int, int);
+template void radix_sort1(uint16_t*, int*, int, int);
 template void radix_sort1(uint32_t*, int*, int, int);
 template void radix_sort1(uint64_t*, int*, int, int);
-
-
-
-
-//------------------------------------------------------------------------------
-// Radix Sort 2
-//------------------------------------------------------------------------------
-
-// Radix Sort that first partially sorts by `tmp0` MSB bits, and then sorts
-// the remaining numbers using the counting sort.
-// Note that the driver script allocates `1 << K` ints for buffer `tmp3`.
-// We use here only `1 << tmp0` for the histogram, and then `1 << (K - tmp0)`
-// for the recursive calls.
-template <typename T>
-void radix_sort2(T* x, int* o, int n, int K)
-{
-  // printf("radixsort2(x=%p, o=%p, n=%d, K=%d [tmp0=%d, tmp1=%p, tmp2=%p, tmp3=%p])\n",
-  //        x, o, n, K, tmp0, tmp1, tmp2, tmp3);
-  int nradixbits = tmp0;
-  T*   xx = (T*)tmp1;
-  int* oo = tmp2;
-  int* histogram = tmp3;
-
-  int nradixes = 1 << nradixbits;
-  int shift = K - nradixbits;
-  int mask = (1 << shift) - 1;
-  std::memset(histogram, 0, nradixes * sizeof(int));
-
-  // Generate the histogram
-  for (int i = 0; i < n; i++) {
-    // assert((x[i] >> shift) < nradixes && (x[i]>>shift) >= 0);
-    histogram[x[i] >> shift]++;
-  }
-  int cumsum = 0;
-  for (int i = 0; i < nradixes; i++) {
-    int h = histogram[i];
-    histogram[i] = cumsum;
-    cumsum += h;
-  }
-
-  // Sort the variables using the histogram
-  for (int i = 0; i < n; i++) {
-    // assert((x[i] >> shift) < nradixes && (x[i]>>shift) >= 0);
-    int k = histogram[x[i] >> shift]++;
-    xx[k] = x[i] & mask;
-    oo[k] = o[i];
-    // assert(xx[k] >= 0 && xx[k] < (1 << shift));
-  }
-
-  // Continue sorting the remainder
-  tmp2 = o;
-  tmp3 = histogram + nradixes;
-  for (int i = 0; i < nradixes; i++) {
-    int start = i? histogram[i - 1] : 0;
-    int end = histogram[i];
-    int nextn = end - start;
-    if (nextn <= 1) continue;
-    T*   nextx = xx + start;
-    int* nexto = oo + start;
-    if (nextn <= 6) {
-      insert_sort0<T>(nextx, nexto, nextn, shift);
-    } else {
-      // This will also use (and modify) tmp1 and tmp2
-      count_sort0<T>(nextx, nexto, nextn, shift);
-    }
-  }
-  tmp2 = oo;
-  tmp3 = histogram;
-
-  memcpy(o, oo, n * sizeof(int));
-  // printf("  done.\n");
-}
-
-template void radix_sort2(uint8_t*,  int*, int, int);
-template void radix_sort2(uint32_t*, int*, int, int);
-template void radix_sort2(uint64_t*, int*, int, int);
 
 
 
@@ -266,5 +237,6 @@ void radix_sort3(T* x, int* o, int n, int K)
 }
 
 template void radix_sort3(uint8_t*,  int*, int, int);
+template void radix_sort3(uint16_t*, int*, int, int);
 template void radix_sort3(uint32_t*, int*, int, int);
 template void radix_sort3(uint64_t*, int*, int, int);

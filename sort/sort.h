@@ -48,14 +48,17 @@ template <typename T>
 void radix_sort1(T* x, int* o, int n, int K);
 
 template <typename T>
-void radix_sort2(T* x, int* o, int n, int K);
-
-template <typename T>
 void radix_sort3(T* x, int* o, int n, int K);
 
-void mergesort0(int *x, int *o, int N, int K);
-void mergesort1(int *x, int *o, int n, int K);
-void timsort(int *x, int *o, int n, int K);
+template <typename T, int P>
+void merge_sort0(T* x, int* o, int N, int K);
+
+template <typename T>
+void mergesort0_impl(T* x, int* o, int n, T* t, int* u, int P);
+
+void mergesort1(int* x, int* o, int n, int K);
+
+void timsort(int* x, int* o, int n, int K);
 
 
 

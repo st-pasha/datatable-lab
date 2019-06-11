@@ -39,7 +39,7 @@ try:
         headers = []
         values = []
         for line in out.split("\n"):
-            mm = re.search(r"^\[\s*([\w\-/:]+)\]\s*([\d\.]+)", line)
+            mm = re.search(r"^\[\s*([\w\-/:#@]+)\]\s*([\d\.]+)", line)
             if mm:
                 name = mm.group(1)
                 value = mm.group(2)

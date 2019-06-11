@@ -1,6 +1,7 @@
 //==============================================================================
 // Micro benchmark for merge-sort functions
 //==============================================================================
+#include <string>
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -9,7 +10,7 @@
 #include "sort.h"
 
 
-static void iinsert_mergesort(int *x, int *o, int n, int i0)
+static void iinsert_mergesort(int* x, int* o, int n, int i0)
 {
   int i, j, xi, oi;
   for (i = i0; i < n; i++) {
@@ -43,33 +44,27 @@ static int compute_minrun(int n)
 
 
 // Top-down mergesort
-static void mergesort0_impl(int *x, int *o, int n, int *__restrict__ t, int *__restrict__ u)
+template <typename T>
+void mergesort0_impl(T* x, int* o, int n, T* t, int* u, int P)
 {
-  if (n <= 2) {
-    if (n == 2 && x[0] > x[1]) {
-      int t = o[0];
-      o[0] = o[1];
-      o[1] = t;
-      t = x[0];
-      x[0] = x[1];
-      x[1] = t;
-    }
+  if (n <= P) {
+    insert_sort0<T>(x, o, n, 0);
     return;
   }
   // Sort each part recursively
   int n1 = n / 2;
   int n2 = n - n1;
-  mergesort0_impl(x, o, n1, t, u);
-  mergesort0_impl(x + n1, o + n1, n2, t + n1, u + n1);
+  mergesort0_impl<T>(x, o, n1, t, u, P);
+  mergesort0_impl<T>(x + n1, o + n1, n2, t + n1, u + n1, P);
 
   // Merge the parts
-  memcpy(t, x, n1 * sizeof(int));
-  memcpy(u, o, n1 * sizeof(int));
+  std::memcpy(t, x, n1 * sizeof(T));
+  std::memcpy(u, o, n1 * sizeof(int));
   int i = 0, j = 0, k = 0;
-  int *__restrict__ x1 = t;
-  int *__restrict__ x2 = x + n1;
-  int *__restrict__ o1 = u;
-  int *__restrict__ o2 = o + n1;
+  T* x1 = t;
+  T* x2 = x + n1;
+  int* o1 = u;
+  int* o2 = o + n1;
   while (1) {
     if (x1[i] <= x2[j]) {
       x[k] = x1[i];
@@ -92,10 +87,33 @@ static void mergesort0_impl(int *x, int *o, int n, int *__restrict__ t, int *__r
   }
 }
 
-void mergesort0(int *x, int *o, int n, int K)
-{
-  mergesort0_impl(x, o, n, tmp1, tmp2);
+// P - size below which the sort function falls back to insert sort
+template <typename T, int P>
+void merge_sort0(T* x, int* o, int n, int K) {
+  mergesort0_impl<T>(x, o, n, (T*)tmp1, tmp2, P);
 }
+
+template void merge_sort0<uint8_t,  8>(uint8_t*,  int*, int, int);
+template void merge_sort0<uint16_t, 8>(uint16_t*, int*, int, int);
+template void merge_sort0<uint32_t, 8>(uint32_t*, int*, int, int);
+template void merge_sort0<uint64_t, 8>(uint64_t*, int*, int, int);
+template void merge_sort0<uint8_t,  12>(uint8_t*,  int*, int, int);
+template void merge_sort0<uint16_t, 12>(uint16_t*, int*, int, int);
+template void merge_sort0<uint32_t, 12>(uint32_t*, int*, int, int);
+template void merge_sort0<uint64_t, 12>(uint64_t*, int*, int, int);
+template void merge_sort0<uint8_t,  16>(uint8_t*,  int*, int, int);
+template void merge_sort0<uint16_t, 16>(uint16_t*, int*, int, int);
+template void merge_sort0<uint32_t, 16>(uint32_t*, int*, int, int);
+template void merge_sort0<uint64_t, 16>(uint64_t*, int*, int, int);
+template void merge_sort0<uint8_t,  20>(uint8_t*,  int*, int, int);
+template void merge_sort0<uint16_t, 20>(uint16_t*, int*, int, int);
+template void merge_sort0<uint32_t, 20>(uint32_t*, int*, int, int);
+template void merge_sort0<uint64_t, 20>(uint64_t*, int*, int, int);
+template void merge_sort0<uint8_t,  24>(uint8_t*,  int*, int, int);
+template void merge_sort0<uint16_t, 24>(uint16_t*, int*, int, int);
+template void merge_sort0<uint32_t, 24>(uint32_t*, int*, int, int);
+template void merge_sort0<uint64_t, 24>(uint64_t*, int*, int, int);
+
 
 
 
@@ -103,10 +121,10 @@ void mergesort0(int *x, int *o, int n, int K)
 // Bottom-up merge sort
 //==============================================================================
 
-void mergesort1(int *x, int *o, int n, int K)
+void mergesort1(int* x, int* o, int n, int K)
 {
-  int *__restrict__ t = tmp1;
-  int *__restrict__ u = tmp2;
+  int* t = tmp1;
+  int* u = tmp2;
 
   // printf("mergesort1(x=%p, o=%p, n=%d)\n", x, o, n);
   int minrun = compute_minrun(n);
@@ -123,7 +141,7 @@ void mergesort1(int *x, int *o, int n, int K)
 
   // When flip is 0, the data is in `x` / `o`; if 1 then data is in `t` / `u`
   int flip = 0;
-  int *ix = NULL, *ox = NULL, *io = NULL, *oo = NULL;
+  int* ix = NULL, *ox = NULL, *io = NULL, *oo = NULL;
   for (int wA = minrun; wA < n; wA *= 2) {
     if (flip) {
       ix = t; ox = x;
@@ -137,12 +155,12 @@ void mergesort1(int *x, int *o, int n, int K)
     int wB = wA;
     // printf("  wA = %d\n", wA);
     for (int s = 0; s < n; s += 2*wA) {
-      int *__restrict__ xA = ix + s;
-      int *__restrict__ xB = ix + s + wA;
-      int *__restrict__ oA = io + s;
-      int *__restrict__ oB = io + s + wA;
-      int *__restrict__ xR = ox + s;
-      int *__restrict__ oR = oo + s;
+      int* xA = ix + s;
+      int* xB = ix + s + wA;
+      int* oA = io + s;
+      int* oB = io + s + wA;
+      int* xR = ox + s;
+      int* oR = oo + s;
       if (s + 2*wA > n) {
         if (s + wA >= n) {
           size_t sz = (n - s) * sizeof(int);
@@ -196,7 +214,7 @@ void mergesort1(int *x, int *o, int n, int K)
 // TimSort
 //==============================================================================
 
-static int find_next_run_length(int *x, int *o, int n)
+static int find_next_run_length(int* x, int* o, int n)
 {
   if (n == 1) return 1;
   int xlast = x[1];
@@ -227,14 +245,14 @@ static int find_next_run_length(int *x, int *o, int n)
 }
 
 
-static void merge_chunks(int *x, int *o, int nA, int nB, int *t, int *u)
+static void merge_chunks(int* x, int* o, int nA, int nB, int* t, int* u)
 {
   memcpy(t, x, nA * sizeof(int));
   memcpy(u, o, nA * sizeof(int));
-  int *__restrict__ xA = t;
-  int *__restrict__ xB = x + nA;
-  int *__restrict__ oA = u;
-  int *__restrict__ oB = o + nA;
+  int* xA = t;
+  int* xB = x + nA;
+  int* oA = u;
+  int* oB = o + nA;
 
   int iA = 0, iB = 0, k = 0;
   while (1) {
@@ -259,7 +277,7 @@ static void merge_chunks(int *x, int *o, int nA, int nB, int *t, int *u)
 }
 
 
-static void merge_stack(int *stack, int *stacklen, int *x, int *o, int *tmp1, int *tmp2)
+static void merge_stack(int* stack, int* stacklen, int* x, int* o, int* tmp1, int* tmp2)
 {
   int sn = *stacklen;
   while (sn >= 3) {
@@ -291,7 +309,7 @@ static void merge_stack(int *stack, int *stacklen, int *x, int *o, int *tmp1, in
   *stacklen = sn;
 }
 
-static void final_merge_stack(int *stack, int *stacklen, int *x, int *o, int *tmp1, int *tmp2)
+static void final_merge_stack(int* stack, int* stacklen, int* x, int* o, int* tmp1, int* tmp2)
 {
   int sn = *stacklen;
   while (sn >= 3) {
@@ -306,7 +324,7 @@ static void final_merge_stack(int *stack, int *stacklen, int *x, int *o, int *tm
 }
 
 
-void timsort(int *x, int *o, int n, int K)
+void timsort(int* x, int* o, int n, int K)
 {
   // printf("timsort(x=%p, o=%p, n=%d, tmp1=%p, tmp2=%p)\n", x, o, n, tmp1, tmp2);
   // printf("  x = ["); for(int i = 0; i < n; i++) printf("%d, ", x[i]); printf("\b\b]\n");
