@@ -51,7 +51,8 @@ void insert_sort0_xo(xoitem<T>* xo, int n, int) {
 // Uses temporary array `tmp1`, which must be at least `n` ints long.
 template <typename T>
 void insert_sort2(T* x, int* o, int n, int K) {
-  int* t = tmp1;
+  assert(tmp1.size() >= n * sizeof(int));
+  int* t = tmp1.get<int>();
   t[0] = 0;
   for (int i = 1; i < n; i++) {
     T xi = x[i];
@@ -74,7 +75,8 @@ void insert_sort2(T* x, int* o, int n, int K) {
 template <typename T>
 void insert_sort3(T* x, int* o, int n, int)
 {
-  int* t = tmp1;
+  assert(tmp1.size() >= 2 * n * sizeof(int));
+  int* t = tmp1.get<int>();
   t[n] = 0;
   int r = n, l = n, i, j, k;
   T xr, xl, xi;

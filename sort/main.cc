@@ -10,9 +10,9 @@
 #include "sort.h"
 
 int tmp0 = 0;
-int *tmp1 = NULL;
-int *tmp2 = NULL;
-int *tmp3 = NULL;
+omem tmp1;
+omem tmp2;
+omem tmp3;
 
 template <int s> struct _elt {};
 template <> struct _elt<8> { using t = uint64_t; };
@@ -275,9 +275,9 @@ int main(int argc, char** argv) {
   }
 
   char name[100];
-  tmp1 = new int[2*N];
-  tmp2 = new int[N];
-  tmp3 = new int[1 << K];
+  tmp1.ensure_size(2*N*sizeof(int));
+  tmp2.ensure_size(N*sizeof(int));
+  tmp3.ensure_size((1<<K)*sizeof(int));
 
   for (int A : cfg.algos) {
     switch (A) {
@@ -398,9 +398,5 @@ int main(int argc, char** argv) {
     }
   }
 
-  // printf("Freeing tmp1=%p, tmp2=%p, tmp3=%p\n", tmp1, tmp2, tmp3);
-  free(tmp1);
-  free(tmp2);
-  free(tmp3);
   return 0;
 }

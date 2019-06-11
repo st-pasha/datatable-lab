@@ -90,7 +90,9 @@ void mergesort0_impl(T* x, int* o, int n, T* t, int* u, int P)
 // P - size below which the sort function falls back to insert sort
 template <typename T, int P>
 void merge_sort0(T* x, int* o, int n, int K) {
-  mergesort0_impl<T>(x, o, n, (T*)tmp1, tmp2, P);
+  assert(tmp1.size() >= n * sizeof(T));
+  assert(tmp2.size() >= n * sizeof(int));
+  mergesort0_impl<T>(x, o, n, tmp1.get<T>(), tmp2.get<int>(), P);
 }
 
 template void merge_sort0<uint8_t,  8>(uint8_t*,  int*, int, int);
@@ -123,8 +125,8 @@ template void merge_sort0<uint64_t, 24>(uint64_t*, int*, int, int);
 
 void mergesort1(int* x, int* o, int n, int K)
 {
-  int* t = tmp1;
-  int* u = tmp2;
+  int* t = tmp1.get<int>();
+  int* u = tmp2.get<int>();
 
   // printf("mergesort1(x=%p, o=%p, n=%d)\n", x, o, n);
   int minrun = compute_minrun(n);
@@ -355,7 +357,7 @@ void timsort(int* x, int* o, int n, int K)
     stack[++stacklen] = i + rl;
     // printf("    stack = ["); for(int i = 0; i <= stacklen; i++) printf("%d, ", stack[i]); printf("\b\b]\n");
     // printf("    merging stack...\n");
-    merge_stack(stack, &stacklen, x, o, tmp1, tmp2);
+    merge_stack(stack, &stacklen, x, o, tmp1.get<int>(), tmp2.get<int>());
     // printf("    x = ["); for(int i = 0; i < n; i++) printf("%d, ", x[i]); printf("\b\b]\n");
     // printf("    stack = ["); for(int i = 0; i <= stacklen; i++) printf("%d, ", stack[i]); printf("\b\b]\n");
     i += rl;
@@ -363,7 +365,7 @@ void timsort(int* x, int* o, int n, int K)
   }
   // printf("  prepare to do final merge of the stack...\n");
   // printf("    stack = ["); for(int i = 0; i <= stacklen; i++) printf("%d, ", stack[i]); printf("\b\b]\n");
-  final_merge_stack(stack, &stacklen, x, o, tmp1, tmp2);
+  final_merge_stack(stack, &stacklen, x, o, tmp1.get<int>(), tmp2.get<int>());
   assert(stacklen == 2);
   // printf("  end\n");
 }

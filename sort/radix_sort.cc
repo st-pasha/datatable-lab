@@ -19,20 +19,28 @@
 // Counting sort (equivalent to radix sort using all K bits)
 // tmp2 should have at least `n` ints.
 // tmp3 should be at least `1 << K` ints long.
-template <typename T>
+template <typename T, bool masked>
 void count_sort0(T* x, int* o, int n, int K)
 {
   static_assert(std::is_integral<T>::value);
   static_assert(std::is_unsigned<T>::value);
-  int* oo = tmp2;
-  int* histogram = tmp3;
+  assert(tmp2.size() >= n * sizeof(int));
+  assert(tmp3.size() >= (1<<K) * sizeof(int));
+  int* oo = tmp2.get<int>();
+  int* histogram = tmp3.get<int>();
 
   int nradixes = 1 << K;
+  int mask = nradixes - 1;
   std::memset(histogram, 0, nradixes * sizeof(int));
 
   // Generate the histogram
   for (int i = 0; i < n; i++) {
-    histogram[x[i]]++;
+    if constexpr(masked) {
+      histogram[x[i] & mask]++;
+    } else {
+      assert(x[i] < nradixes);
+      histogram[x[i]]++;
+    }
   }
   int cumsum = 0;
   for (int i = 0; i < nradixes; i++) {
@@ -40,19 +48,22 @@ void count_sort0(T* x, int* o, int n, int K)
     histogram[i] = cumsum;
     cumsum += h;
   }
+  assert(cumsum == n);
 
   // Sort the variables using the histogram
   for (int i = 0; i < n; i++) {
-    int k = histogram[x[i]]++;
+    int k = masked? histogram[x[i] & mask]++
+                  : histogram[x[i]]++;
+    assert(k < n);
     oo[k] = o[i];
   }
   std::memcpy(o, oo, n * sizeof(int));
 }
 
-template void count_sort0(uint8_t*,  int*, int, int);
-template void count_sort0(uint16_t*, int*, int, int);
-template void count_sort0(uint32_t*, int*, int, int);
-template void count_sort0(uint64_t*, int*, int, int);
+template void count_sort0<uint8_t,  false>(uint8_t*,  int*, int, int);
+template void count_sort0<uint16_t, false>(uint16_t*, int*, int, int);
+template void count_sort0<uint32_t, false>(uint32_t*, int*, int, int);
+template void count_sort0<uint64_t, false>(uint64_t*, int*, int, int);
 
 
 
@@ -77,21 +88,27 @@ static void bestsort(T* x, int* o, int N, int K)
   if (N <= INSERT_THRESHOLDS[K]) {
     insert_sort0<T>(x, o, N, K);
   } else {
-    count_sort0<T>(x, o, N, K);
+    count_sort0<T, true>(x, o, N, K);
   }
 }
 
 template <typename T, int W>
 static void bestsort0(T* x, int* o, int n, int K) {
   return n <= W ? insert_sort0<T>(x, o, n, K)
-                : count_sort0<T>(x, o, n, K);
+                : count_sort0<T, true>(x, o, n, K);
 }
 
 template <typename T, int W1, int W2>
 static void bestsort1(T* x, int* o, int n, int K) {
-  return n <= W1 ? insert_sort0<T>(x, o, n, K) :
-         n <= W2 ? mergesort0_impl<T>(x, o, n, (T*)tmp1, tmp2, 20)
-                 : count_sort0<T>(x, o, n, K);
+  if (n <= W1) {
+    insert_sort0<T>(x, o, n, K);
+  } else if (n <= W2) {
+    assert(tmp1.size() >= n * sizeof(T));
+    assert(tmp2.size() >= n * sizeof(int));
+    mergesort0_impl<T>(x, o, n, tmp1.get<T>(), tmp2.get<int>(), 20);
+  } else {
+    count_sort0<T, true>(x, o, n, K);
+  }
 }
 
 using sortfn_u32_t = void(*)(uint32_t*, int*, int, int);
@@ -120,8 +137,10 @@ template <typename TI, typename TO>
 static void radix_recurse(TI* x, int* o, int* histogram, int n,
                           int nradixes, int shift)
 {
-  TO*  xx = (TO*)tmp1;
-  int* oo = tmp2;
+  assert(tmp1.size() >= n * sizeof(TO));
+  assert(tmp2.size() >= n * sizeof(int));
+  TO*  xx = tmp1.get<TO>();
+  int* oo = tmp2.get<int>();
   int mask = nradixes - 1;
 
   for (int i = 0; i < n; i++) {
@@ -131,8 +150,8 @@ static void radix_recurse(TI* x, int* o, int* histogram, int n,
   }
 
   // Continue sorting the remainder
-  tmp1 = (int*)x;
-  tmp2 = o;
+  tmp1.push(x, n * sizeof(TI));
+  tmp2.push(o, n * sizeof(int));
   for (int i = 0; i < nradixes; i++) {
     int start = i? histogram[i - 1] : 0;
     int end = histogram[i];
@@ -146,8 +165,8 @@ static void radix_recurse(TI* x, int* o, int* histogram, int n,
       bestsort<TO>(nextx, nexto, nextn, shift);
     }
   }
-  tmp1 = (int*)xx;
-  tmp2 = oo;
+  tmp2.pop();
+  tmp1.pop();
 }
 
 
@@ -160,11 +179,14 @@ static void radix_recurse(TI* x, int* o, int* histogram, int n,
 template <typename T>
 void radix_sort1(T* x, int* o, int n, int K)
 {
+  assert(tmp1.size() >= n * sizeof(T));
+  assert(tmp2.size() >= n * sizeof(int));
+  assert(tmp3.size() >= (1<<tmp0) * sizeof(int));
   // printf("radixsort1(x=%p, o=%p, n=%d, K=%d)\n", x, o, n, K);
   int nradixbits = tmp0;
-  T*  xx = reinterpret_cast<T*>(tmp1);
-  int* oo = tmp2;
-  int* histogram = tmp3;
+  T*   xx = tmp1.get<T>();
+  int* oo = tmp2.get<int>();
+  int* histogram = tmp3.get<int>();
 
   int nradixes = 1 << nradixbits;
   int shift = K - nradixbits;
@@ -208,8 +230,8 @@ template <typename T>
 void radix_sort3(T* x, int* o, int n, int K)
 {
   int nradixbits = tmp0;
-  int* oo = tmp2;
-  int* histogram = tmp3;
+  int* oo = tmp2.get<int>();
+  int* histogram = tmp3.get<int>();
 
   int nradixes = 1 << nradixbits;
   int shift = K - nradixbits;
@@ -226,12 +248,12 @@ void radix_sort3(T* x, int* o, int n, int K)
     cumsum += h;
   }
 
-  tmp3 = histogram + nradixes;
+  tmp3.push(histogram + nradixes, tmp3.size() - nradixes * sizeof(int));
   if (shift <= 8)       radix_recurse<T, uint8_t >(x, o, histogram, n, nradixes, shift);
   else if (shift <= 16) radix_recurse<T, uint16_t>(x, o, histogram, n, nradixes, shift);
   else if (shift <= 32) radix_recurse<T, uint32_t>(x, o, histogram, n, nradixes, shift);
   else                  radix_recurse<T, uint64_t>(x, o, histogram, n, nradixes, shift);
-  tmp3 = histogram;
+  tmp3.pop();
 
   memcpy(o, oo, n * sizeof(int));
 }
