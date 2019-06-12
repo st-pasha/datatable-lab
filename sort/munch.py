@@ -4,7 +4,7 @@ import subprocess
 import sys
 import colorama
 
-NMIN = 2
+NMIN = 45
 
 def get_cmd(n):
     return [c.replace("{N}", str(n)).replace("--n={N}", "--n=" + str(n))

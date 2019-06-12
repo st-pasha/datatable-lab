@@ -111,6 +111,35 @@ static void bestsort1(T* x, int* o, int n, int K) {
   }
 }
 
+template <typename T>
+static void bestsort_k10(T* x, int* o, int n, int K) {
+  if (n <= 24) {
+    insert_sort0<T>(x, o, n, K);
+  } else if (n <= 90 || n > 10000) {
+    tmp0 = 4;
+    radix_sort1<T>(x, o, n, K);
+  } else if (n <= 200) {
+    tmp0 = 6;
+    radix_sort1<T>(x, o, n, K);
+  } else {
+    count_sort0<T, true>(x, o, n, K);
+  }
+}
+
+template <typename T>
+static void bestsort_k12(T* x, int* o, int n, int K) {
+  if (n <= 24) {
+    insert_sort0<T>(x, o, n, K);
+  } else if (n <= 90 || n > 30000) {
+    tmp0 = 4;
+    radix_sort1<T>(x, o, n, K);
+  } else {
+    tmp0 = 6;
+    radix_sort1<T>(x, o, n, K);
+  }
+}
+
+
 using sortfn_u32_t = void(*)(uint32_t*, int*, int, int);
 static sortfn_u32_t best_sorts_u32[] = {
   /* k =  0 */ nullptr,
@@ -122,10 +151,10 @@ static sortfn_u32_t best_sorts_u32[] = {
   /* k =  6 */ bestsort0<uint32_t, 19>,
   /* k =  7 */ bestsort0<uint32_t, 26>,
   /* k =  8 */ bestsort0<uint32_t, 28>,
-  /* k =  9 */ bestsort1<uint32_t, 24, 48>,
-  /* k = 10 */ bestsort1<uint32_t, 24, 72>,
-  /* k = 11 */ bestsort1<uint32_t, 24, 72>, // tmp
-  /* k = 12 */ bestsort1<uint32_t, 24, 72>, // tmp
+  /* k =  9 */ bestsort_k10<uint32_t>,
+  /* k = 10 */ bestsort_k10<uint32_t>,
+  /* k = 11 */ bestsort_k12<uint32_t>,
+  /* k = 12 */ bestsort_k12<uint32_t>,
   /* k = 13 */ bestsort1<uint32_t, 24, 72>, // tmp
   /* k = 14 */ bestsort1<uint32_t, 24, 72>, // tmp
   /* k = 15 */ bestsort1<uint32_t, 24, 72>, // tmp

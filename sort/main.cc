@@ -46,7 +46,7 @@ int test(const char* algoname, sortfn_t sortfn, int N, int K, int B, int T, int 
     o = new int[N];  // ordering, sorted together with the data
   }
 
-  size_t niters = 0;
+  size_t niters = 1;
   double* ts = new double[B]();
   double tsum = 0;
   for (int b = 0; b < B; b++) {
@@ -66,11 +66,13 @@ int test(const char* algoname, sortfn_t sortfn, int N, int K, int B, int T, int 
 
     //----- Determine the number of iterations ---------
     bool done = (N >= 32768);
-    niters = 1;
-    while (true) {
+    while (b == 0) {
       if constexpr(combined) {
+        delete[] wxo;
         wxo = new xoitem<XT>[N * niters];
       } else {
+        delete[] wx;
+        delete[] wo;
         wx = new XT[N * niters];
         wo = new int[N * niters];
       }
@@ -104,9 +106,6 @@ int test(const char* algoname, sortfn_t sortfn, int N, int K, int B, int T, int 
       } else {
         niters *= 2;
       }
-      delete[] wx;
-      delete[] wo;
-      delete[] wxo;
     }
 
     //----- Run the iterations -------------------------
@@ -172,9 +171,6 @@ int test(const char* algoname, sortfn_t sortfn, int N, int K, int B, int T, int 
   delete[] x;
   delete[] o;
   delete[] xo;
-  delete[] wx;
-  delete[] wo;
-  delete[] wxo;
   delete[] ts;
   return 0;
 }
@@ -367,7 +363,7 @@ int main(int argc, char** argv) {
         break;
 
       case 9: {
-        int kstep = K <= 4? 1 : K <= 8? 2 : 4;
+        int kstep = K <= 4? 1 : K <= 16? 2 : 4;
         for (int k = kstep; k < K; k += kstep) {
           if (k > 20) continue;
           tmp0 = k;
